@@ -40,7 +40,7 @@
             <i data-lucide="x" class="w-8 h-8"></i>
         </button>
         <img id="modal-image" src="" alt="Foto Absen Lebar" class="max-w-full max-h-[85vh] rounded-lg shadow-2xl object-contain" />
-        <p class="text-white/80 mt-4 font-medium text-sm">Klik di luar gambar atau tombol silang untuk menutup</p>
+        <p class="text-white/80 mt-4 font-medium text-sm">Klik di luar gambar untuk menutup</p>
     </div>
 
     <main class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -66,7 +66,7 @@
                         />
                     </div>
 
-                    <!-- Input Tanggal & Waktu (Grid) -->
+                    <!-- Input Tanggal & Waktu -->
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-semibold text-slate-700 mb-1">Tanggal</label>
@@ -102,7 +102,6 @@
                     <div>
                         <label class="block text-sm font-semibold text-slate-700 mb-1">Bukti Foto / Selfie</label>
                         
-                        <!-- Placeholder jika foto belum ada -->
                         <div id="photo-placeholder" onclick="document.getElementById('file-input').click()" class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer hover:bg-slate-50 hover:border-indigo-400 transition-all group">
                             <div class="space-y-2 text-center">
                                 <div class="flex justify-center gap-3">
@@ -120,7 +119,6 @@
                             </div>
                         </div>
 
-                        <!-- Preview jika foto sudah dipilih -->
                         <div id="photo-preview" class="hidden relative mt-2 rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
                             <img id="preview-img" src="" alt="Preview" class="w-full h-48 object-cover cursor-pointer" onclick="openModal(this.src)" title="Klik untuk perbesar" />
                             <button type="button" onclick="removePhoto()" class="absolute top-2 right-2 p-1.5 bg-white/90 backdrop-blur-sm text-red-600 rounded-full shadow-sm hover:bg-red-50 transition-colors" title="Hapus Foto">
@@ -131,18 +129,9 @@
                             </div>
                         </div>
                         
-                        <!-- Hidden File Input -->
-                        <input 
-                            type="file" 
-                            id="file-input"
-                            accept="image/*" 
-                            capture="environment"
-                            class="hidden" 
-                            onchange="handlePhotoUpload(event)"
-                        />
+                        <input type="file" id="file-input" accept="image/*" capture="environment" class="hidden" onchange="handlePhotoUpload(event)" />
                     </div>
 
-                    <!-- Tombol Submit -->
                     <button type="submit" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-sm hover:shadow transition-all flex items-center justify-center gap-2">
                         <i data-lucide="check-circle" class="w-5 h-5"></i>
                         Simpan Absen
@@ -151,19 +140,16 @@
             </div>
         </div>
 
-        <!-- Kolom Kanan: Rekap Data -->
+        <!-- Kolom Ranan: Rekap Data -->
         <div class="lg:col-span-2">
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-full">
-                <!-- Header Rekap Data -->
                 <div class="p-6 border-b border-slate-100 bg-slate-50/50 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
                     <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
                         <i data-lucide="calendar" class="w-5 h-5 text-indigo-500"></i>
                         Data Rekap Absensi
                     </h2>
                     
-                    <!-- Action Bar (Filters & Export) -->
                     <div class="flex flex-wrap items-center gap-2 w-full xl:w-auto">
-                        <!-- Filter Pilihan -->
                         <select id="filter-select" onchange="handleFilterChange(event)" class="text-sm px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-600 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer shadow-sm">
                             <option value="all">Semua Waktu</option>
                             <option value="daily">Hari Ini</option>
@@ -174,25 +160,15 @@
                         <div id="records-count" class="text-sm px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-slate-600 font-medium">
                             Total: 0
                         </div>
-                        <button onclick="exportToCSV()" class="flex items-center gap-1.5 text-sm px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors font-medium shadow-sm" title="Unduh Data CSV Laporan">
+                        <button onclick="exportToCSV()" class="flex items-center gap-1.5 text-sm px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors font-medium shadow-sm">
                             <i data-lucide="download" class="w-4 h-4"></i>
                             <span class="hidden sm:inline">Export CSV</span>
-                        </button>
-                        <!-- Tombol "Simpan ke Drive" opsional karena sekarang otomatis, tapi tetap disediakan untuk backup CSV manual -->
-                        <button id="btn-drive" onclick="uploadToGoogleDrive()" class="flex items-center gap-1.5 text-sm px-3 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors font-medium shadow-sm" title="Backup Manual CSV & Foto ke Drive">
-                            <i id="icon-drive" data-lucide="cloud-upload" class="w-4 h-4"></i>
-                            <span id="text-drive" class="hidden sm:inline">Backup Drive</span>
                         </button>
                     </div>
                 </div>
 
                 <div class="p-6 flex-1 overflow-auto bg-slate-50/30 min-h-[400px]">
-                    <!-- Container List Data -->
-                    <div id="records-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- Data akan di-render di sini oleh JavaScript -->
-                    </div>
-                    
-                    <!-- State Kosong -->
+                    <div id="records-container" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
                     <div id="empty-state" class="hidden h-full flex flex-col items-center justify-center text-slate-400 space-y-3 py-12">
                         <i data-lucide="file-check" class="w-16 h-16 opacity-20"></i>
                         <p id="empty-text">Belum ada data absensi.</p>
@@ -200,90 +176,29 @@
                 </div>
             </div>
         </div>
-
     </main>
 
-    <!-- Script Logika Aplikasi -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, setDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // Inisialisasi ikon Lucide
         lucide.createIcons();
 
-        // --- KONFIGURASI PENTING ---
-        const CLIENT_ID = '482253857327-3q8duju4u8afgep0noo9s3bot82moor0.apps.googleusercontent.com';
-        const FOLDER_ID = '1OM3Zd6CIDyf7aISzoalvBbNItuzBpVKi';
-        
-        // --- URL WEB APP GOOGLE APPS SCRIPT ---
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxtDXWzFfRZXGuMA-IjcvHXxClQrE7-tn89mlT4zkq8ZrpZLPxqkaMEtPW7l0RaCQM8/exec';
+        // --- URL WEB APP GOOGLE APPS SCRIPT BARU ---
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw39WbmXkcrNEb61quIvSopo2AjzJIhqIOkR7cQ4n_nSU8UGqj8_mjyFdk-7AOsBa64/exec';
 
         let records = [];
         let currentPhotoData = null;
-        let isUploading = false;
         let currentFilter = 'all';
 
-        // --- SETUP CLOUD DATABASE (Firebase opsional untuk sinkronisasi antarmuka) ---
-        const firebaseConfigStr = typeof __firebase_config !== 'undefined' ? __firebase_config : null;
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        let dbUser = null;
-        let absensiCollection = null;
-
-        if (firebaseConfigStr) {
-            const firebaseConfig = JSON.parse(firebaseConfigStr);
-            const app = initializeApp(firebaseConfig);
-            const auth = getAuth(app);
-            const db = getFirestore(app);
-
-            const initAuth = async () => {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            };
-            initAuth();
-
-            onAuthStateChanged(auth, (user) => {
-                if (user) {
-                    dbUser = user;
-                    absensiCollection = collection(db, 'artifacts', appId, 'public', 'data', 'absensi_records');
-                    
-                    onSnapshot(absensiCollection, (snapshot) => {
-                        const loadedRecords = [];
-                        snapshot.forEach((doc) => {
-                            loadedRecords.push(doc.data());
-                        });
-                        records = loadedRecords.sort((a, b) => b.id - a.id);
-                        renderRecords();
-                    }, (error) => {
-                        console.error("Firestore error:", error);
-                    });
-                }
-            });
-        } else {
-            const savedData = localStorage.getItem('absensi_records');
-            if (savedData) {
-                records = JSON.parse(savedData);
-            }
-            renderRecords();
+        // Load data dari Local Storage
+        const savedData = localStorage.getItem('absensi_records');
+        if (savedData) {
+            records = JSON.parse(savedData);
         }
-
-        // --- FUNGSI UTILITAS ---
-        function getStatusColor(status) {
-            switch(status) {
-                case 'Masuk': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-                case 'Pulang': return 'bg-blue-100 text-blue-800 border-blue-200';
-                default: return 'bg-gray-100 text-gray-800 border-gray-200';
-            }
-        }
+        renderRecords();
 
         function showNotification(message, type = 'success') {
             const toast = document.getElementById('notification-toast');
             const msgEl = document.getElementById('notification-message');
             const iconEl = document.getElementById('notification-icon');
-
             msgEl.textContent = message;
             
             if (type === 'success') {
@@ -294,105 +209,61 @@
                 iconEl.setAttribute('data-lucide', 'alert-circle');
             }
             lucide.createIcons();
-
             setTimeout(() => {
                 toast.classList.remove('translate-y-0', 'opacity-100');
                 toast.classList.add('translate-y-[-100%]', 'opacity-0');
             }, 3500);
         }
 
-        function compressImage(dataUrl, maxWidth, maxHeight, quality) {
-            return new Promise((resolve) => {
-                const img = new Image();
-                img.src = dataUrl;
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    let width = img.width;
-                    let height = img.height;
-
-                    if (width > height) {
-                        if (width > maxWidth) {
-                            height = Math.round(height * (maxWidth / width));
-                            width = maxWidth;
-                        }
-                    } else {
-                        if (height > maxHeight) {
-                            width = Math.round(width * (maxHeight / height));
-                            height = maxHeight;
-                        }
-                    }
-
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-                    resolve(canvas.toDataURL('image/jpeg', quality));
-                };
-            });
-        }
-
-        function dataURLtoBlob(dataurl) {
-            let arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
-                bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
-            while(n--) {
-                u8arr[n] = bstr.charCodeAt(n);
-            }
-            return new Blob([u8arr], {type:mime});
-        }
-
         function setDateTimeDefaults() {
             const now = new Date();
-            const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-            document.getElementById('current-date-display').textContent = now.toLocaleDateString('id-ID', dateOptions);
-            
             const yyyy = now.getFullYear();
             const mm = String(now.getMonth() + 1).padStart(2, '0');
             const dd = String(now.getDate()).padStart(2, '0');
             document.getElementById('input-date').value = `${yyyy}-${mm}-${dd}`;
-            
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            document.getElementById('input-time').value = `${hours}:${minutes}`;
+            document.getElementById('input-time').value = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            document.getElementById('current-date-display').textContent = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         }
         setDateTimeDefaults();
 
-        // --- INTERAKSI DOM ---
-        window.openModal = (imgSrc) => {
-            if (!imgSrc) return;
-            const modal = document.getElementById('image-modal');
-            document.getElementById('modal-image').src = imgSrc;
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
+        window.openModal = (src) => {
+            document.getElementById('modal-image').src = src;
+            document.getElementById('image-modal').classList.remove('hidden');
+            document.getElementById('image-modal').classList.add('flex');
             document.body.style.overflow = 'hidden';
         };
 
         window.closeModal = () => {
-            const modal = document.getElementById('image-modal');
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-            document.getElementById('modal-image').src = '';
+            document.getElementById('image-modal').classList.add('hidden');
+            document.getElementById('image-modal').classList.remove('flex');
             document.body.style.overflow = 'auto';
         };
-
-        document.getElementById('image-modal').addEventListener('click', function(e) {
-            if (e.target === this) window.closeModal();
-        });
 
         window.handlePhotoUpload = (e) => {
             const file = e.target.files[0];
             if (file) {
-                if (file.size > 10 * 1024 * 1024) {
-                    showNotification('Ukuran foto terlalu besar. Maksimal 10MB.', 'error');
-                    e.target.value = '';
-                    return;
-                }
                 const reader = new FileReader();
-                reader.onloadend = async () => {
-                    // Kompresi agar hemat Drive (kualitas 60%)
-                    currentPhotoData = await compressImage(reader.result, 800, 800, 0.6);
-                    document.getElementById('preview-img').src = currentPhotoData;
-                    document.getElementById('photo-placeholder').classList.add('hidden');
-                    document.getElementById('photo-preview').classList.remove('hidden');
+                reader.onloadend = () => {
+                    const img = new Image();
+                    img.src = reader.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        const MAX_WIDTH = 800;
+                        let width = img.width;
+                        let height = img.height;
+                        if (width > MAX_WIDTH) {
+                            height *= MAX_WIDTH / width;
+                            width = MAX_WIDTH;
+                        }
+                        canvas.width = width;
+                        canvas.height = height;
+                        ctx.drawImage(img, 0, 0, width, height);
+                        currentPhotoData = canvas.toDataURL('image/jpeg', 0.6);
+                        document.getElementById('preview-img').src = currentPhotoData;
+                        document.getElementById('photo-placeholder').classList.add('hidden');
+                        document.getElementById('photo-preview').classList.remove('hidden');
+                    };
                 };
                 reader.readAsDataURL(file);
             }
@@ -405,21 +276,11 @@
             document.getElementById('photo-preview').classList.add('hidden');
         };
 
-        window.handleDelete = async (id) => {
-            if (window.confirm('Apakah Anda yakin ingin menghapus riwayat ini? (Ini tidak akan menghapus data di Google Sheet Anda)')) {
-                if (dbUser && absensiCollection) {
-                    try {
-                        await deleteDoc(doc(absensiCollection, id.toString()));
-                        showNotification('Data dihapus dari histori.', 'success');
-                    } catch (e) {
-                        showNotification('Gagal menghapus data', 'error');
-                    }
-                } else {
-                    records = records.filter(record => record.id !== id);
-                    localStorage.setItem('absensi_records', JSON.stringify(records));
-                    renderRecords();
-                    showNotification('Data dihapus dari histori.', 'success');
-                }
+        window.handleDelete = (id) => {
+            if (confirm('Hapus histori ini?')) {
+                records = records.filter(r => r.id !== id);
+                localStorage.setItem('absensi_records', JSON.stringify(records));
+                renderRecords();
             }
         };
 
@@ -428,338 +289,106 @@
             renderRecords();
         };
 
-        function getFilteredRecords() {
-            if (currentFilter === 'all') return records;
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-
-            return records.filter(record => {
-                const recordDate = new Date(record.date);
-                recordDate.setHours(0, 0, 0, 0);
-
-                if (currentFilter === 'daily') {
-                    return recordDate.getTime() === today.getTime();
-                } else if (currentFilter === 'weekly') {
-                    const sevenDaysAgo = new Date(today);
-                    sevenDaysAgo.setDate(today.getDate() - 7);
-                    return recordDate >= sevenDaysAgo && recordDate <= today;
-                } else if (currentFilter === 'monthly') {
-                    return recordDate.getMonth() === today.getMonth() && recordDate.getFullYear() === today.getFullYear();
-                }
-                return true;
-            });
-        }
-
         function renderRecords() {
             const container = document.getElementById('records-container');
-            const emptyState = document.getElementById('empty-state');
-            const countEl = document.getElementById('records-count');
-            const emptyText = document.getElementById('empty-text');
+            const filtered = records.filter(r => {
+                if (currentFilter === 'all') return true;
+                const d = new Date(r.date);
+                const today = new Date();
+                today.setHours(0,0,0,0);
+                d.setHours(0,0,0,0);
+                if (currentFilter === 'daily') return d.getTime() === today.getTime();
+                if (currentFilter === 'monthly') return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
+                return true;
+            });
 
-            const filteredRecords = getFilteredRecords();
-            countEl.textContent = `Total: ${filteredRecords.length}`;
-
-            if (filteredRecords.length === 0) {
+            document.getElementById('records-count').textContent = `Total: ${filtered.length}`;
+            if (filtered.length === 0) {
                 container.innerHTML = '';
-                emptyState.classList.remove('hidden');
-                
-                if (currentFilter === 'daily') emptyText.textContent = 'Belum ada data absensi hari ini.';
-                else if (currentFilter === 'weekly') emptyText.textContent = 'Belum ada data absensi minggu ini.';
-                else if (currentFilter === 'monthly') emptyText.textContent = 'Belum ada data absensi bulan ini.';
-                else emptyText.textContent = 'Belum ada data absensi.';
-                return;
-            }
-
-            emptyState.classList.add('hidden');
-            
-            container.innerHTML = filteredRecords.map(record => `
-                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow group relative">
-                    <div class="flex gap-4">
-                        <div 
-                            onclick="window.openModal('${record.photo || ''}')"
-                            class="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border border-slate-100 bg-slate-50 flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
-                            title="Klik untuk perbesar"
-                        >
-                            ${record.photo 
-                                ? `<img src="${record.photo}" alt="Foto ${record.name}" class="w-full h-full object-cover" />` 
-                                : `<i data-lucide="image" class="w-8 h-8 text-slate-300"></i>`
-                            }
-                        </div>
-                        
-                        <div class="flex-1 min-w-0">
-                            <h3 class="font-bold text-slate-800 truncate" title="${record.name}">${record.name}</h3>
-                            <div class="flex items-center gap-3 mt-1.5 text-xs text-slate-500">
-                                <span class="flex items-center gap-1"><i data-lucide="calendar" class="w-3.5 h-3.5"></i> ${record.date}</span>
-                                <span class="flex items-center gap-1"><i data-lucide="clock" class="w-3.5 h-3.5"></i> ${record.time}</span>
-                            </div>
-                            <div class="mt-2 flex items-center justify-between">
-                                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getStatusColor(record.status)}">
-                                ${record.status}
+                document.getElementById('empty-state').classList.remove('hidden');
+            } else {
+                document.getElementById('empty-state').classList.add('hidden');
+                container.innerHTML = filtered.map(r => `
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md relative group">
+                        <div class="flex gap-4">
+                            <img src="${r.photo}" onclick="openModal(this.src)" class="w-16 h-16 rounded-lg object-cover cursor-pointer" />
+                            <div class="flex-1 min-w-0">
+                                <h3 class="font-bold text-slate-800 truncate">${r.name}</h3>
+                                <p class="text-xs text-slate-500 mt-1">${r.date} | ${r.time}</p>
+                                <span class="inline-block mt-2 px-2 py-0.5 rounded-full text-xs font-semibold ${r.status === 'Masuk' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'}">
+                                    ${r.status}
                                 </span>
                             </div>
                         </div>
+                        <button onclick="handleDelete(${r.id})" class="absolute top-2 right-2 p-1 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
                     </div>
-
-                    <button onclick="window.handleDelete(${record.id})" class="absolute top-3 right-3 p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors opacity-0 group-hover:opacity-100" title="Hapus Histori Ini">
-                        <i data-lucide="trash-2" class="w-4 h-4"></i>
-                    </button>
-                </div>
-            `).join('');
-
-            lucide.createIcons();
+                `).join('');
+                lucide.createIcons();
+            }
         }
 
-        // --- PROSES SIMPAN ABSEN (KE APPS SCRIPT) ---
         document.getElementById('attendance-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
             const name = document.getElementById('input-name').value.trim();
             const date = document.getElementById('input-date').value;
             const time = document.getElementById('input-time').value;
             const status = document.getElementById('input-status').value;
-            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const btn = e.target.querySelector('button[type="submit"]');
 
-            if (!name) return showNotification('Nama harus diisi!', 'error');
-            if (!time) return showNotification('Waktu absensi harus diisi!', 'error');
-            if (!currentPhotoData) return showNotification('Foto bukti wajib dilampirkan!', 'error');
+            if (!name || !currentPhotoData) return showNotification('Lengkapi data dan foto!', 'error');
 
-            const newRecord = {
-                id: Date.now(),
-                name: name,
-                date: date,
-                time: time,
-                status: status,
-                photo: currentPhotoData
-            };
-
-            // Loading UI
-            const originalBtnHtml = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Menyimpan ke Sheet...';
-            submitBtn.disabled = true;
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Menyimpan...';
+            btn.disabled = true;
+            lucide.createIcons();
 
             try {
-                // 1. Persiapkan data format Form Data (Menghindari block CORS)
-                const base64Data = currentPhotoData.split(',')[1];
-                const mimeType = currentPhotoData.split(',')[0].match(/:(.*?);/)[1];
-                
-                // Gunakan URLSearchParams agar terbaca sebagai application/x-www-form-urlencoded
-                const formParams = new URLSearchParams();
-                formParams.append('nama', name);
-                formParams.append('tanggal', date);
-                formParams.append('waktu', time);
-                formParams.append('status', status);
-                formParams.append('photoBase64', base64Data);
-                formParams.append('mimeType', mimeType);
+                const params = new URLSearchParams();
+                params.append('nama', name);
+                params.append('tanggal', date);
+                params.append('waktu', time);
+                params.append('status', status);
+                params.append('photoBase64', currentPhotoData.split(',')[1]);
+                params.append('mimeType', 'image/jpeg');
 
-                // Kirim tanpa custom header agar lolos tanpa blokade
+                // Mengirim ke Apps Script
                 await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
-                    body: formParams
+                    body: params
                 });
 
-                console.log("Data berhasil dikirim ke Google Sheets.");
-
-                // 2. Simpan juga ke histori tampilan aplikasi lokal
-                if (dbUser && absensiCollection) {
-                    await setDoc(doc(absensiCollection, newRecord.id.toString()), newRecord);
-                } else {
-                    records.unshift(newRecord);
-                    localStorage.setItem('absensi_records', JSON.stringify(records));
-                    renderRecords();
-                }
-
-                showNotification('Absen berhasil disimpan ke Google Sheet!', 'success');
-
-                // Reset Form
-                document.getElementById('input-name').value = '';
-                setDateTimeDefaults();
-                document.getElementById('input-status').value = 'Masuk';
-                window.removePhoto();
-
-            } catch (err) {
-                console.error("Terjadi error Fetch: ", err);
-                records.unshift(newRecord);
+                const newRec = { id: Date.now(), name, date, time, status, photo: currentPhotoData };
+                records.unshift(newRec);
                 localStorage.setItem('absensi_records', JSON.stringify(records));
                 renderRecords();
                 
-                showNotification('Absen disimpan lokal. Masih gagal kirim ke Sheet.', 'error');
+                showNotification('Berhasil disimpan ke Google Sheet!', 'success');
+                document.getElementById('input-name').value = '';
+                removePhoto();
+                setDateTimeDefaults();
+            } catch (err) {
+                console.error(err);
+                showNotification('Gagal terhubung ke server, data tetap disimpan di HP.', 'error');
             } finally {
-                // Kembalikan tombol
-                submitBtn.innerHTML = originalBtnHtml;
-                submitBtn.disabled = false;
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
                 lucide.createIcons();
             }
         });
 
-        // --- BACKUP MANUAL (CSV + FOTO) MENGGUNAKAN OAUTH ---
         window.exportToCSV = () => {
-            const dataToExport = getFilteredRecords();
-            if (dataToExport.length === 0) {
-                showNotification('Tidak ada data untuk diekspor', 'error');
-                return;
-            }
-
-            const headers = ['ID', 'Nama Lengkap', 'Tanggal', 'Waktu', 'Status'];
-            const csvRows = dataToExport.map(record => [
-                record.id,
-                `"${record.name}"`, 
-                record.date,
-                record.time,
-                record.status
-            ].join(','));
-
-            const csvString = [headers.join(','), ...csvRows].join('\n');
-            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+            const rows = [["Nama Lengkap", "Tanggal", "Waktu", "Status"]];
+            records.forEach(r => rows.push([r.name, r.date, r.time, r.status]));
+            const csv = rows.map(r => r.join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
             const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            
-            let fileNameSuffix = currentFilter === 'all' ? 'Semua' : currentFilter === 'daily' ? 'Harian' : currentFilter === 'weekly' ? 'Mingguan' : 'Bulanan';
-            link.href = url;
-            link.setAttribute('download', `Rekap_Absensi_${fileNameSuffix}_${new Date().toISOString().split('T')[0]}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            showNotification('File CSV berhasil diunduh!', 'success');
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `rekap_absensi_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
         };
-
-        function setUploadingState(uploading, customText = null) {
-            isUploading = uploading;
-            const btn = document.getElementById('btn-drive');
-            const icon = document.getElementById('icon-drive');
-            const text = document.getElementById('text-drive');
-
-            if (uploading) {
-                btn.className = 'flex items-center gap-1.5 text-sm px-3 py-2 text-white bg-blue-400 cursor-not-allowed rounded-lg transition-colors font-medium shadow-sm';
-                icon.setAttribute('data-lucide', 'loader-2');
-                icon.classList.add('animate-spin');
-                text.textContent = customText || 'Menyimpan...';
-            } else {
-                btn.className = 'flex items-center gap-1.5 text-sm px-3 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors font-medium shadow-sm';
-                icon.setAttribute('data-lucide', 'cloud-upload');
-                icon.classList.remove('animate-spin');
-                text.textContent = 'Backup Drive';
-            }
-            lucide.createIcons();
-        }
-
-        async function executeUpload(accessToken, folderId) {
-            try {
-                const dataToUpload = getFilteredRecords();
-                
-                // 1. Upload CSV
-                setUploadingState(true, 'Upload CSV...');
-                const headers = ['ID', 'Nama Lengkap', 'Tanggal', 'Waktu', 'Status'];
-                const csvRows = dataToUpload.map(record => [
-                    record.id, `"${record.name}"`, record.date, record.time, record.status
-                ].join(','));
-                const csvString = [headers.join(','), ...csvRows].join('\n');
-
-                let fileNameSuffix = currentFilter === 'all' ? 'Semua' : currentFilter === 'daily' ? 'Harian' : currentFilter === 'weekly' ? 'Mingguan' : 'Bulanan';
-
-                const csvMetadata = {
-                    name: `Backup_Absensi_${fileNameSuffix}_${new Date().toISOString().split('T')[0]}.csv`,
-                    mimeType: 'text/csv',
-                    parents: [folderId]
-                };
-
-                const csvForm = new FormData();
-                csvForm.append('metadata', new Blob([JSON.stringify(csvMetadata)], { type: 'application/json' }));
-                csvForm.append('file', new Blob([csvString], { type: 'text/csv' }));
-
-                const csvResponse = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true', {
-                    method: 'POST',
-                    headers: { Authorization: `Bearer ${accessToken}` },
-                    body: csvForm
-                });
-
-                if (!csvResponse.ok) throw new Error('Gagal upload CSV');
-
-                // 2. Upload Foto Manual
-                let photoSuccessCount = 0;
-                const recordsWithPhoto = dataToUpload.filter(r => r.photo && r.photo.startsWith('data:'));
-                
-                for (let i = 0; i < recordsWithPhoto.length; i++) {
-                    const record = recordsWithPhoto[i];
-                    setUploadingState(true, `Upload Foto ${i + 1}/${recordsWithPhoto.length}...`);
-
-                    try {
-                        let ext = '.jpg';
-                        if (record.photo.startsWith('data:image/png')) ext = '.png';
-                        
-                        const photoFileName = `Backup_${record.name}-${record.date}-${record.status}${ext}`;
-                        const photoBlob = dataURLtoBlob(record.photo);
-
-                        const photoMetadata = {
-                            name: photoFileName,
-                            parents: [folderId]
-                        };
-
-                        const photoForm = new FormData();
-                        photoForm.append('metadata', new Blob([JSON.stringify(photoMetadata)], { type: 'application/json' }));
-                        photoForm.append('file', photoBlob);
-
-                        await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true', {
-                            method: 'POST',
-                            headers: { Authorization: `Bearer ${accessToken}` },
-                            body: photoForm
-                        });
-
-                        photoSuccessCount++;
-                    } catch (photoErr) {
-                        console.error('Gagal backup foto:', record.name, photoErr);
-                    }
-                }
-
-                showNotification(`Berhasil backup CSV dan ${photoSuccessCount} Foto ke Drive!`, 'success');
-            } catch (error) {
-                console.error(error);
-                showNotification('Terjadi kesalahan jaringan saat backup.', 'error');
-            } finally {
-                setUploadingState(false);
-            }
-        }
-
-        window.uploadToGoogleDrive = () => {
-            if (isUploading) return;
-            
-            const dataToUpload = getFilteredRecords();
-            if (dataToUpload.length === 0) {
-                showNotification('Tidak ada data untuk dibackup', 'error');
-                return;
-            }
-
-            if (!window.google) {
-                showNotification('Sistem Google API belum siap. Tunggu sebentar.', 'error');
-                return;
-            }
-
-            try {
-                setUploadingState(true, 'Menyiapkan...');
-                const client = window.google.accounts.oauth2.initTokenClient({
-                    client_id: CLIENT_ID,
-                    scope: 'https://www.googleapis.com/auth/drive.file',
-                    callback: (response) => {
-                        if (response && response.access_token) {
-                            executeUpload(response.access_token, FOLDER_ID);
-                        } else {
-                            setUploadingState(false);
-                        }
-                    },
-                    error_callback: (err) => {
-                        console.error('Auth Error:', err);
-                        showNotification('Gagal otentikasi akun Google', 'error');
-                        setUploadingState(false);
-                    }
-                });
-                client.requestAccessToken();
-            } catch (err) {
-                console.error(err);
-                showNotification('Konfigurasi Client ID tidak valid', 'error');
-                setUploadingState(false);
-            }
-        };
-
     </script>
 </body>
 </html>
