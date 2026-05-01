@@ -174,13 +174,14 @@
                         <div id="records-count" class="text-sm px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-slate-600 font-medium">
                             Total: 0
                         </div>
-                        <button onclick="exportToCSV()" class="flex items-center gap-1.5 text-sm px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors font-medium shadow-sm" title="Unduh Data CSV">
+                        <button onclick="exportToCSV()" class="flex items-center gap-1.5 text-sm px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors font-medium shadow-sm" title="Unduh Data CSV Laporan">
                             <i data-lucide="download" class="w-4 h-4"></i>
                             <span class="hidden sm:inline">Export CSV</span>
                         </button>
-                        <button id="btn-drive" onclick="uploadToGoogleDrive()" class="flex items-center gap-1.5 text-sm px-3 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors font-medium shadow-sm" title="Simpan Langsung ke Google Drive">
+                        <!-- Tombol "Simpan ke Drive" opsional karena sekarang otomatis, tapi tetap disediakan untuk backup CSV manual -->
+                        <button id="btn-drive" onclick="uploadToGoogleDrive()" class="flex items-center gap-1.5 text-sm px-3 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors font-medium shadow-sm" title="Backup Manual CSV & Foto ke Drive">
                             <i id="icon-drive" data-lucide="cloud-upload" class="w-4 h-4"></i>
-                            <span id="text-drive" class="hidden sm:inline">Simpan ke Drive</span>
+                            <span id="text-drive" class="hidden sm:inline">Backup Drive</span>
                         </button>
                     </div>
                 </div>
@@ -211,17 +212,19 @@
         // Inisialisasi ikon Lucide
         lucide.createIcons();
 
-        // Constants & State
+        // --- KONFIGURASI PENTING ---
         const CLIENT_ID = '482253857327-3q8duju4u8afgep0noo9s3bot82moor0.apps.googleusercontent.com';
         const FOLDER_ID = '1OM3Zd6CIDyf7aISzoalvBbNItuzBpVKi';
+        
+        // --- URL WEB APP GOOGLE APPS SCRIPT ---
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbye5fVdSc5ABbO2rf_ahWndztkOfmi7lra_elXlNtFrGgF3gzP3d0hUNlpTdXRGuHsy/exec';
 
         let records = [];
         let currentPhotoData = null;
         let isUploading = false;
         let currentFilter = 'all';
 
-        // --- SETUP CLOUD DATABASE (Firebase) ---
-        // Ini memastikan data Anda real-time dan aman dari hilang tanpa perlu klik manual
+        // --- SETUP CLOUD DATABASE (Firebase opsional untuk sinkronisasi antarmuka) ---
         const firebaseConfigStr = typeof __firebase_config !== 'undefined' ? __firebase_config : null;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         let dbUser = null;
@@ -247,23 +250,19 @@
                     dbUser = user;
                     absensiCollection = collection(db, 'artifacts', appId, 'public', 'data', 'absensi_records');
                     
-                    // Mendengarkan perubahan data secara real-time dari Cloud
                     onSnapshot(absensiCollection, (snapshot) => {
                         const loadedRecords = [];
                         snapshot.forEach((doc) => {
                             loadedRecords.push(doc.data());
                         });
-                        // Urutkan dari yang terbaru
                         records = loadedRecords.sort((a, b) => b.id - a.id);
                         renderRecords();
                     }, (error) => {
                         console.error("Firestore error:", error);
-                        showNotification('Gagal memuat data dari Cloud', 'error');
                     });
                 }
             });
         } else {
-            // Fallback Local Storage jika dijalankan secara lokal di luar Canvas
             const savedData = localStorage.getItem('absensi_records');
             if (savedData) {
                 records = JSON.parse(savedData);
@@ -271,7 +270,7 @@
             renderRecords();
         }
 
-        // Functions Utama
+        // --- FUNGSI UTILITAS ---
         function getStatusColor(status) {
             switch(status) {
                 case 'Masuk': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
@@ -299,10 +298,9 @@
             setTimeout(() => {
                 toast.classList.remove('translate-y-0', 'opacity-100');
                 toast.classList.add('translate-y-[-100%]', 'opacity-0');
-            }, 3000);
+            }, 3500);
         }
 
-        // Kompresi gambar agar muat dikirim ke Cloud dan memuat lebih cepat
         function compressImage(dataUrl, maxWidth, maxHeight, quality) {
             return new Promise((resolve) => {
                 const img = new Image();
@@ -333,6 +331,15 @@
             });
         }
 
+        function dataURLtoBlob(dataurl) {
+            let arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+                bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+            while(n--) {
+                u8arr[n] = bstr.charCodeAt(n);
+            }
+            return new Blob([u8arr], {type:mime});
+        }
+
         function setDateTimeDefaults() {
             const now = new Date();
             const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
@@ -349,7 +356,7 @@
         }
         setDateTimeDefaults();
 
-        // Mendaftarkan fungsi ke "window" agar bisa dipanggil oleh attribute onclick di HTML
+        // --- INTERAKSI DOM (Di-bind ke Window agar dikenali HTML onclick) ---
         window.openModal = (imgSrc) => {
             if (!imgSrc) return;
             const modal = document.getElementById('image-modal');
@@ -381,7 +388,7 @@
                 }
                 const reader = new FileReader();
                 reader.onloadend = async () => {
-                    // Otomatis kompresi gambar menjadi JPEG kualitas 60% agar hemat kapasitas Database Cloud
+                    // Kompresi agar hemat Drive (kualitas 60%)
                     currentPhotoData = await compressImage(reader.result, 800, 800, 0.6);
                     document.getElementById('preview-img').src = currentPhotoData;
                     document.getElementById('photo-placeholder').classList.add('hidden');
@@ -399,11 +406,11 @@
         };
 
         window.handleDelete = async (id) => {
-            if (window.confirm('Apakah Anda yakin ingin menghapus data ini?')) {
+            if (window.confirm('Apakah Anda yakin ingin menghapus riwayat ini? (Ini tidak akan menghapus data di Google Sheet Anda)')) {
                 if (dbUser && absensiCollection) {
                     try {
                         await deleteDoc(doc(absensiCollection, id.toString()));
-                        showNotification('Data berhasil dihapus dari Database Cloud.', 'success');
+                        showNotification('Data dihapus dari histori.', 'success');
                     } catch (e) {
                         showNotification('Gagal menghapus data', 'error');
                     }
@@ -411,7 +418,7 @@
                     records = records.filter(record => record.id !== id);
                     localStorage.setItem('absensi_records', JSON.stringify(records));
                     renderRecords();
-                    showNotification('Data berhasil dihapus.', 'success');
+                    showNotification('Data dihapus dari histori.', 'success');
                 }
             }
         };
@@ -493,7 +500,7 @@
                         </div>
                     </div>
 
-                    <button onclick="window.handleDelete(${record.id})" class="absolute top-3 right-3 p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors opacity-0 group-hover:opacity-100" title="Hapus Data">
+                    <button onclick="window.handleDelete(${record.id})" class="absolute top-3 right-3 p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors opacity-0 group-hover:opacity-100" title="Hapus Histori Ini">
                         <i data-lucide="trash-2" class="w-4 h-4"></i>
                     </button>
                 </div>
@@ -502,7 +509,7 @@
             lucide.createIcons();
         }
 
-        // --- SUBMIT DATA ABSENSI ---
+        // --- PROSES SIMPAN ABSEN (KE APPS SCRIPT) ---
         document.getElementById('attendance-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -510,6 +517,7 @@
             const date = document.getElementById('input-date').value;
             const time = document.getElementById('input-time').value;
             const status = document.getElementById('input-status').value;
+            const submitBtn = e.target.querySelector('button[type="submit"]');
 
             if (!name) return showNotification('Nama harus diisi!', 'error');
             if (!time) return showNotification('Waktu absensi harus diisi!', 'error');
@@ -524,31 +532,66 @@
                 photo: currentPhotoData
             };
 
-            if (dbUser && absensiCollection) {
-                // Simpan Otomatis ke Cloud Database (Sinkron antar device)
-                try {
-                    await setDoc(doc(absensiCollection, newRecord.id.toString()), newRecord);
-                    showNotification('Absen berhasil disimpan ke Cloud!', 'success');
-                } catch (err) {
-                    console.error(err);
-                    showNotification('Gagal menyimpan ke Cloud', 'error');
-                    return;
-                }
-            } else {
-                // Fallback simpan lokal jika koneksi Cloud putus
-                records.unshift(newRecord);
-                localStorage.setItem('absensi_records', JSON.stringify(records));
-                renderRecords();
-                showNotification('Absen berhasil disimpan lokal!', 'success');
-            }
+            // Loading UI
+            const originalBtnHtml = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Menyimpan ke Sheet...';
+            submitBtn.disabled = true;
 
-            document.getElementById('input-name').value = '';
-            setDateTimeDefaults();
-            document.getElementById('input-status').value = 'Masuk';
-            window.removePhoto();
+            try {
+                // 1. Simpan ke Google Sheets & Google Drive via Apps Script
+                const base64Data = currentPhotoData.split(',')[1];
+                const mimeType = currentPhotoData.split(',')[0].match(/:(.*?);/)[1];
+                
+                const payload = {
+                    nama: name,
+                    tanggal: date,
+                    waktu: time,
+                    status: status,
+                    photoBase64: base64Data,
+                    mimeType: mimeType
+                };
+
+                // Request ke Apps Script menggunakan no-cors agar tidak di-block oleh browser
+                await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', 
+                    headers: {
+                        'Content-Type': 'text/plain',
+                    },
+                    body: JSON.stringify(payload)
+                });
+                console.log("Data dikirim ke Google Sheets (via Apps Script)");
+
+                // 2. Simpan juga ke histori tampilan aplikasi lokal (Firebase/Local Storage)
+                if (dbUser && absensiCollection) {
+                    await setDoc(doc(absensiCollection, newRecord.id.toString()), newRecord);
+                } else {
+                    records.unshift(newRecord);
+                    localStorage.setItem('absensi_records', JSON.stringify(records));
+                    renderRecords();
+                }
+
+                showNotification('Absen berhasil disimpan ke Google Sheet!', 'success');
+
+                // Reset Form
+                document.getElementById('input-name').value = '';
+                setDateTimeDefaults();
+                document.getElementById('input-status').value = 'Masuk';
+                window.removePhoto();
+
+            } catch (err) {
+                console.error(err);
+                showNotification('Terjadi kesalahan saat mengirim data!', 'error');
+            } finally {
+                // Kembalikan tombol
+                submitBtn.innerHTML = originalBtnHtml;
+                submitBtn.disabled = false;
+                lucide.createIcons();
+            }
         });
 
-        // --- EXPORT & GOOGLE DRIVE ---
+        // --- BACKUP MANUAL (CSV + FOTO) MENGGUNAKAN OAUTH ---
+        // (Opsi tambahan jika sewaktu-waktu ingin backup massal manual ke Drive)
         window.exportToCSV = () => {
             const dataToExport = getFilteredRecords();
             if (dataToExport.length === 0) {
@@ -580,7 +623,7 @@
             showNotification('File CSV berhasil diunduh!', 'success');
         };
 
-        function setUploadingState(uploading) {
+        function setUploadingState(uploading, customText = null) {
             isUploading = uploading;
             const btn = document.getElementById('btn-drive');
             const icon = document.getElementById('icon-drive');
@@ -590,12 +633,12 @@
                 btn.className = 'flex items-center gap-1.5 text-sm px-3 py-2 text-white bg-blue-400 cursor-not-allowed rounded-lg transition-colors font-medium shadow-sm';
                 icon.setAttribute('data-lucide', 'loader-2');
                 icon.classList.add('animate-spin');
-                text.textContent = 'Menyimpan...';
+                text.textContent = customText || 'Menyimpan...';
             } else {
                 btn.className = 'flex items-center gap-1.5 text-sm px-3 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors font-medium shadow-sm';
                 icon.setAttribute('data-lucide', 'cloud-upload');
                 icon.classList.remove('animate-spin');
-                text.textContent = 'Simpan ke Drive';
+                text.textContent = 'Backup Drive';
             }
             lucide.createIcons();
         }
@@ -603,6 +646,9 @@
         async function executeUpload(accessToken, folderId) {
             try {
                 const dataToUpload = getFilteredRecords();
+                
+                // 1. Upload CSV
+                setUploadingState(true, 'Upload CSV...');
                 const headers = ['ID', 'Nama Lengkap', 'Tanggal', 'Waktu', 'Status'];
                 const csvRows = dataToUpload.map(record => [
                     record.id, `"${record.name}"`, record.date, record.time, record.status
@@ -611,34 +657,64 @@
 
                 let fileNameSuffix = currentFilter === 'all' ? 'Semua' : currentFilter === 'daily' ? 'Harian' : currentFilter === 'weekly' ? 'Mingguan' : 'Bulanan';
 
-                const metadata = {
-                    name: `Rekap_Absensi_${fileNameSuffix}_${new Date().toISOString().split('T')[0]}.csv`,
+                const csvMetadata = {
+                    name: `Backup_Absensi_${fileNameSuffix}_${new Date().toISOString().split('T')[0]}.csv`,
                     mimeType: 'text/csv',
                     parents: [folderId]
                 };
 
-                const form = new FormData();
-                form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-                form.append('file', new Blob([csvString], { type: 'text/csv' }));
+                const csvForm = new FormData();
+                csvForm.append('metadata', new Blob([JSON.stringify(csvMetadata)], { type: 'application/json' }));
+                csvForm.append('file', new Blob([csvString], { type: 'text/csv' }));
 
-                const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true', {
+                const csvResponse = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true', {
                     method: 'POST',
-                    headers: {
-                        Authorization: `Bearer ${accessToken}`
-                    },
-                    body: form
+                    headers: { Authorization: `Bearer ${accessToken}` },
+                    body: csvForm
                 });
 
-                if (response.ok) {
-                    showNotification('Berhasil disimpan ke Google Drive!', 'success');
-                } else {
-                    const errData = await response.json();
-                    console.error('Drive API Error:', errData);
-                    showNotification('Gagal mengupload ke Drive. Cek Console.', 'error');
+                if (!csvResponse.ok) throw new Error('Gagal upload CSV');
+
+                // 2. Upload Foto Manual
+                let photoSuccessCount = 0;
+                const recordsWithPhoto = dataToUpload.filter(r => r.photo && r.photo.startsWith('data:'));
+                
+                for (let i = 0; i < recordsWithPhoto.length; i++) {
+                    const record = recordsWithPhoto[i];
+                    setUploadingState(true, `Upload Foto ${i + 1}/${recordsWithPhoto.length}...`);
+
+                    try {
+                        let ext = '.jpg';
+                        if (record.photo.startsWith('data:image/png')) ext = '.png';
+                        
+                        const photoFileName = `Backup_${record.name}-${record.date}-${record.status}${ext}`;
+                        const photoBlob = dataURLtoBlob(record.photo);
+
+                        const photoMetadata = {
+                            name: photoFileName,
+                            parents: [folderId]
+                        };
+
+                        const photoForm = new FormData();
+                        photoForm.append('metadata', new Blob([JSON.stringify(photoMetadata)], { type: 'application/json' }));
+                        photoForm.append('file', photoBlob);
+
+                        await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true', {
+                            method: 'POST',
+                            headers: { Authorization: `Bearer ${accessToken}` },
+                            body: photoForm
+                        });
+
+                        photoSuccessCount++;
+                    } catch (photoErr) {
+                        console.error('Gagal backup foto:', record.name, photoErr);
+                    }
                 }
+
+                showNotification(`Berhasil backup CSV dan ${photoSuccessCount} Foto ke Drive!`, 'success');
             } catch (error) {
                 console.error(error);
-                showNotification('Terjadi kesalahan jaringan saat upload.', 'error');
+                showNotification('Terjadi kesalahan jaringan saat backup.', 'error');
             } finally {
                 setUploadingState(false);
             }
@@ -649,7 +725,7 @@
             
             const dataToUpload = getFilteredRecords();
             if (dataToUpload.length === 0) {
-                showNotification('Tidak ada data untuk diupload', 'error');
+                showNotification('Tidak ada data untuk dibackup', 'error');
                 return;
             }
 
@@ -659,7 +735,7 @@
             }
 
             try {
-                setUploadingState(true);
+                setUploadingState(true, 'Menyiapkan...');
                 const client = window.google.accounts.oauth2.initTokenClient({
                     client_id: CLIENT_ID,
                     scope: 'https://www.googleapis.com/auth/drive.file',
