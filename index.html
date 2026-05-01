@@ -1,490 +1,502 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Image as ImageIcon, CheckCircle, Clock, User, Calendar, X, FileCheck, AlertCircle, Trash2, Download, ExternalLink, CloudUpload, Loader2 } from 'lucide-react';
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Rekap Absensi</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-800 font-sans p-4 md:p-8">
 
-export default function App() {
-  // State untuk menyimpan data absensi
-  const [records, setRecords] = useState([
-    {
-      id: 1,
-      name: 'Budi Santoso',
-      date: new Date().toISOString().split('T')[0],
-      time: '08:15',
-      status: 'Hadir',
-      photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?fit=crop&w=150&h=150',
-    }
-  ]);
-
-  // State untuk form
-  const [formData, setFormData] = useState({
-    name: '',
-    date: new Date().toISOString().split('T')[0],
-    status: 'Hadir',
-    photo: null
-  });
-
-  const [notification, setNotification] = useState(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef(null);
-
-  // Load Google Identity Services API saat aplikasi pertama kali dimuat
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    document.body.appendChild(script);
-
-    return () => {
-      if (document.body.contains(script)) {
-        document.body.removeChild(script);
-      }
-    };
-  }, []);
-
-  // Menangani perubahan input teks dan select
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  // Menangani upload gambar/foto
-  const handlePhotoUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      // Validasi ukuran file (misal maksimal 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        showNotification('Ukuran foto terlalu besar. Maksimal 5MB.', 'error');
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData(prev => ({ ...prev, photo: reader.result }));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  // Menghapus foto yang sudah dipilih
-  const removePhoto = () => {
-    setFormData(prev => ({ ...prev, photo: null }));
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  // Menampilkan notifikasi
-  const showNotification = (message, type = 'success') => {
-    setNotification({ message, type });
-    setTimeout(() => setNotification(null), 3000);
-  };
-
-  // Menyimpan data absen
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    if (!formData.name.trim()) {
-      showNotification('Nama harus diisi!', 'error');
-      return;
-    }
-    if (!formData.photo) {
-      showNotification('Foto bukti wajib dilampirkan!', 'error');
-      return;
-    }
-
-    const newRecord = {
-      id: Date.now(),
-      name: formData.name,
-      date: formData.date,
-      time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-      status: formData.status,
-      photo: formData.photo
-    };
-
-    setRecords(prev => [newRecord, ...prev]);
-    
-    // Reset form
-    setFormData({
-      name: '',
-      date: new Date().toISOString().split('T')[0],
-      status: 'Hadir',
-      photo: null
-    });
-    if (fileInputRef.current) fileInputRef.current.value = '';
-    
-    showNotification('Absen berhasil disimpan!', 'success');
-  };
-
-  // Menghapus data absen
-  const handleDelete = (id) => {
-    if (window.confirm('Apakah Anda yakin ingin menghapus data ini?')) {
-      setRecords(prev => prev.filter(record => record.id !== id));
-      showNotification('Data berhasil dihapus.', 'success');
-    }
-  };
-
-  // Proses upload langsung ke Google Drive
-  const executeUpload = async (accessToken, folderId) => {
-    try {
-      const headers = ['ID', 'Nama Lengkap', 'Tanggal', 'Waktu', 'Status'];
-      const csvRows = records.map(record => [
-        record.id, `"${record.name}"`, record.date, record.time, record.status
-      ].join(','));
-      const csvString = [headers.join(','), ...csvRows].join('\n');
-
-      // Setup metadata (nama file dan folder tujuan)
-      const metadata = {
-        name: `Rekap_Absensi_${new Date().toISOString().split('T')[0]}.csv`,
-        mimeType: 'text/csv',
-        parents: [folderId]
-      };
-
-      const form = new FormData();
-      form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-      form.append('file', new Blob([csvString], { type: 'text/csv' }));
-
-      // Hit API Google Drive
-      const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`
-        },
-        body: form
-      });
-
-      if (response.ok) {
-        showNotification('Berhasil disimpan ke Google Drive!', 'success');
-      } else {
-        const errData = await response.json();
-        console.error('Drive API Error:', errData);
-        showNotification('Gagal mengupload ke Drive. Cek Console.', 'error');
-      }
-    } catch (error) {
-      console.error(error);
-      showNotification('Terjadi kesalahan jaringan saat upload.', 'error');
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  // Trigger Google Login dan mulai upload
-  const uploadToGoogleDrive = () => {
-    if (records.length === 0) {
-      showNotification('Tidak ada data untuk diupload', 'error');
-      return;
-    }
-
-    if (!window.google) {
-      showNotification('Sistem Google API belum siap. Tunggu sebentar.', 'error');
-      return;
-    }
-
-    const CLIENT_ID = '482253857327-3q8duju4u8afgep0noo9s3bot82moor0.apps.googleusercontent.com';
-    const FOLDER_ID = '1OM3Zd6CIDyf7aISzoalvBbNItuzBpVKi';
-
-    try {
-      setIsUploading(true);
-      const client = window.google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID,
-        scope: 'https://www.googleapis.com/auth/drive.file',
-        callback: (response) => {
-          if (response && response.access_token) {
-            executeUpload(response.access_token, FOLDER_ID);
-          } else {
-            setIsUploading(false);
-          }
-        },
-        error_callback: (err) => {
-          console.error('Auth Error:', err);
-          showNotification('Gagal otentikasi akun Google', 'error');
-          setIsUploading(false);
-        }
-      });
-      client.requestAccessToken();
-    } catch (err) {
-      console.error(err);
-      showNotification('Konfigurasi Client ID tidak valid', 'error');
-      setIsUploading(false);
-    }
-  };
-
-  // Ekspor data ke format CSV
-  const exportToCSV = () => {
-    if (records.length === 0) {
-      showNotification('Tidak ada data untuk diekspor', 'error');
-      return;
-    }
-
-    // Membuat Header kolom CSV
-    const headers = ['ID', 'Nama Lengkap', 'Tanggal', 'Waktu', 'Status'];
-    
-    // Memasukkan baris data (kecuali foto, karena akan membuat CSV rusak jika base64 terlalu panjang)
-    const csvRows = records.map(record => {
-      return [
-        record.id,
-        `"${record.name}"`, // Tanda kutip ganda untuk menghindari error jika nama mengandung koma
-        record.date,
-        record.time,
-        record.status
-      ].join(',');
-    });
-
-    // Menggabungkan semua baris
-    const csvString = [headers.join(','), ...csvRows].join('\n');
-    
-    // Membuat file Blob dan link untuk mengunduh
-    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `Rekap_Absensi_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    showNotification('File CSV berhasil diunduh!', 'success');
-  };
-
-  const getStatusColor = (status) => {
-    switch(status) {
-      case 'Hadir': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-      case 'Sakit': return 'bg-amber-100 text-amber-800 border-amber-200';
-      case 'Izin': return 'bg-blue-100 text-blue-800 border-blue-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans p-4 md:p-8">
-      {/* Header */}
-      <header className="max-w-6xl mx-auto mb-8 text-center md:text-left flex flex-col md:flex-row items-center justify-between">
+    <!-- Header -->
+    <header class="max-w-6xl mx-auto mb-8 text-center md:text-left flex flex-col md:flex-row items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-indigo-900 flex items-center justify-center md:justify-start gap-3">
-            <FileCheck className="w-8 h-8 text-indigo-600" />
-            Sistem Rekap Absensi
-          </h1>
-          <p className="text-slate-500 mt-2">Catat kehadiran harian dengan bukti foto.</p>
+            <h1 class="text-3xl font-bold text-indigo-900 flex items-center justify-center md:justify-start gap-3">
+                <i data-lucide="file-check" class="w-8 h-8 text-indigo-600"></i>
+                Sistem Rekap Absensi
+            </h1>
+            <p class="text-slate-500 mt-2">Catat kehadiran harian dengan bukti foto.</p>
         </div>
-        <div className="mt-4 md:mt-0 bg-white px-4 py-2 rounded-full shadow-sm border border-slate-200 flex items-center gap-2">
-          <Clock className="w-5 h-5 text-indigo-500" />
-          <span className="font-medium">{new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+        <div class="mt-4 md:mt-0 bg-white px-4 py-2 rounded-full shadow-sm border border-slate-200 flex items-center gap-2">
+            <i data-lucide="clock" class="w-5 h-5 text-indigo-500"></i>
+            <span id="current-date-display" class="font-medium"></span>
         </div>
-      </header>
+    </header>
 
-      {/* Notifikasi Toast */}
-      {notification && (
-        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-all transform duration-300 translate-y-0 ${notification.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-500 text-white'}`}>
-          {notification.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
-          <p className="font-medium">{notification.message}</p>
-        </div>
-      )}
+    <!-- Notifikasi Toast -->
+    <div id="notification-toast" class="fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-all transform duration-300 translate-y-[-100%] opacity-0">
+        <i id="notification-icon" data-lucide="check-circle" class="w-5 h-5 text-white"></i>
+        <p id="notification-message" class="font-medium text-white"></p>
+    </div>
 
-      <main className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <main class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* Kolom Kiri: Form Input */}
-        <div className="lg:col-span-1">
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-            <h2 className="text-xl font-bold text-slate-800 mb-6 border-b pb-4 flex items-center gap-2">
-              <User className="w-5 h-5 text-indigo-500" />
-              Form Absensi
-            </h2>
+        <!-- Kolom Kiri: Form Input -->
+        <div class="lg:col-span-1">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                <h2 class="text-xl font-bold text-slate-800 mb-6 border-b pb-4 flex items-center gap-2">
+                    <i data-lucide="user" class="w-5 h-5 text-indigo-500"></i>
+                    Form Absensi
+                </h2>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              
-              {/* Input Nama */}
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">Nama Lengkap</label>
-                <input 
-                  type="text" 
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  placeholder="Masukkan nama Anda..."
-                  className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
-                />
-              </div>
-
-              {/* Input Tanggal & Status (Grid) */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">Tanggal</label>
-                  <div className="relative">
-                    <input 
-                      type="date" 
-                      name="date"
-                      value={formData.date}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all appearance-none"
-                    />
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">Status</label>
-                  <select 
-                    name="status"
-                    value={formData.status}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white"
-                  >
-                    <option value="Hadir">Hadir</option>
-                    <option value="Sakit">Sakit</option>
-                    <option value="Izin">Izin</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Upload Foto */}
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">Bukti Foto / Selfie</label>
-                
-                {!formData.photo ? (
-                  <div 
-                    onClick={() => fileInputRef.current.click()}
-                    className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer hover:bg-slate-50 hover:border-indigo-400 transition-all group"
-                  >
-                    <div className="space-y-2 text-center">
-                      <div className="flex justify-center gap-3">
-                        <div className="p-3 bg-indigo-50 rounded-full text-indigo-600 group-hover:bg-indigo-100 transition-colors">
-                          <Camera className="w-6 h-6" />
-                        </div>
-                        <div className="p-3 bg-indigo-50 rounded-full text-indigo-600 group-hover:bg-indigo-100 transition-colors">
-                          <ImageIcon className="w-6 h-6" />
-                        </div>
-                      </div>
-                      <div className="text-sm text-slate-600 flex flex-col">
-                        <span className="font-semibold text-indigo-600">Klik untuk upload foto</span>
-                        <span className="text-xs mt-1">Bisa ambil dari kamera atau galeri</span>
-                      </div>
+                <form id="attendance-form" class="space-y-5">
+                    
+                    <!-- Input Nama -->
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Nama Lengkap</label>
+                        <input 
+                            type="text" 
+                            id="input-name"
+                            placeholder="Masukkan nama Anda..."
+                            class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                        />
                     </div>
-                  </div>
-                ) : (
-                  <div className="relative mt-2 rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
-                    <img src={formData.photo} alt="Preview" className="w-full h-48 object-cover" />
-                    <button
-                      type="button"
-                      onClick={removePhoto}
-                      className="absolute top-2 right-2 p-1.5 bg-white/90 backdrop-blur-sm text-red-600 rounded-full shadow-sm hover:bg-red-50 transition-colors"
-                      title="Hapus Foto"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3">
-                      <p className="text-white text-xs font-medium truncate">Foto siap diupload</p>
-                    </div>
-                  </div>
-                )}
-                
-                {/* Hidden File Input */}
-                {/* accept="image/*" and capture="environment" makes it prompt for camera on mobile */}
-                <input 
-                  type="file" 
-                  ref={fileInputRef}
-                  onChange={handlePhotoUpload}
-                  accept="image/*" 
-                  capture="environment"
-                  className="hidden" 
-                />
-              </div>
 
-              {/* Tombol Submit */}
-              <button 
-                type="submit"
-                className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-sm hover:shadow transition-all flex items-center justify-center gap-2"
-              >
-                <CheckCircle className="w-5 h-5" />
-                Simpan Absen
-              </button>
-            </form>
-          </div>
-        </div>
-
-        {/* Kolom Kanan: Rekap Data */}
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-full">
-            <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-indigo-500" />
-                Data Rekap Absensi
-              </h2>
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="text-sm px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-600 font-medium">
-                  Total: {records.length}
-                </div>
-                <button 
-                  onClick={exportToCSV}
-                  className="flex items-center gap-1.5 text-sm px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors font-medium shadow-sm"
-                  title="Unduh Data CSV"
-                >
-                  <Download className="w-4 h-4" />
-                  <span className="hidden sm:inline">Export CSV</span>
-                </button>
-                <button 
-                  onClick={uploadToGoogleDrive}
-                  disabled={isUploading}
-                  className={`flex items-center gap-1.5 text-sm px-3 py-2 text-white rounded-lg transition-colors font-medium shadow-sm ${isUploading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
-                  title="Simpan Langsung ke Google Drive"
-                >
-                  {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CloudUpload className="w-4 h-4" />}
-                  <span className="hidden sm:inline">{isUploading ? 'Menyimpan...' : 'Simpan ke Drive'}</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="p-6 flex-1 overflow-auto bg-slate-50/30">
-              {records.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-3 py-12">
-                  <FileCheck className="w-16 h-16 opacity-20" />
-                  <p>Belum ada data absensi hari ini.</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {records.map((record) => (
-                    <div key={record.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow group relative">
-                      <div className="flex gap-4">
-                        {/* Thumbnail Foto */}
-                        <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border border-slate-100 bg-slate-50">
-                          {record.photo ? (
-                            <img src={record.photo} alt={record.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-slate-300">
-                              <ImageIcon className="w-8 h-8" />
+                    <!-- Input Tanggal & Status (Grid) -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Tanggal</label>
+                            <div class="relative">
+                                <input 
+                                    type="date" 
+                                    id="input-date"
+                                    class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all appearance-none"
+                                />
                             </div>
-                          )}
                         </div>
                         
-                        {/* Info Absen */}
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-bold text-slate-800 truncate" title={record.name}>{record.name}</h3>
-                          <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-500">
-                            <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5"/> {record.date}</span>
-                            <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5"/> {record.time}</span>
-                          </div>
-                          <div className="mt-2 flex items-center justify-between">
-                             <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getStatusColor(record.status)}`}>
-                              {record.status}
-                            </span>
-                          </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Status</label>
+                            <select 
+                                id="input-status"
+                                class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white"
+                            >
+                                <option value="Hadir">Hadir</option>
+                                <option value="Sakit">Sakit</option>
+                                <option value="Izin">Izin</option>
+                            </select>
                         </div>
-                      </div>
-
-                      {/* Tombol Hapus */}
-                      <button 
-                        onClick={() => handleDelete(record.id)}
-                        className="absolute top-3 right-3 p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors opacity-0 group-hover:opacity-100"
-                        title="Hapus Data"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
                     </div>
-                  ))}
-                </div>
-              )}
+
+                    <!-- Upload Foto -->
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Bukti Foto / Selfie</label>
+                        
+                        <!-- Placeholder jika foto belum ada -->
+                        <div id="photo-placeholder" onclick="document.getElementById('file-input').click()" class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer hover:bg-slate-50 hover:border-indigo-400 transition-all group">
+                            <div class="space-y-2 text-center">
+                                <div class="flex justify-center gap-3">
+                                    <div class="p-3 bg-indigo-50 rounded-full text-indigo-600 group-hover:bg-indigo-100 transition-colors">
+                                        <i data-lucide="camera" class="w-6 h-6"></i>
+                                    </div>
+                                    <div class="p-3 bg-indigo-50 rounded-full text-indigo-600 group-hover:bg-indigo-100 transition-colors">
+                                        <i data-lucide="image" class="w-6 h-6"></i>
+                                    </div>
+                                </div>
+                                <div class="text-sm text-slate-600 flex flex-col">
+                                    <span class="font-semibold text-indigo-600">Klik untuk upload foto</span>
+                                    <span class="text-xs mt-1">Bisa ambil dari kamera atau galeri</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Preview jika foto sudah dipilih -->
+                        <div id="photo-preview" class="hidden relative mt-2 rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
+                            <img id="preview-img" src="" alt="Preview" class="w-full h-48 object-cover" />
+                            <button type="button" onclick="removePhoto()" class="absolute top-2 right-2 p-1.5 bg-white/90 backdrop-blur-sm text-red-600 rounded-full shadow-sm hover:bg-red-50 transition-colors" title="Hapus Foto">
+                                <i data-lucide="x" class="w-5 h-5"></i>
+                            </button>
+                            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3">
+                                <p class="text-white text-xs font-medium truncate">Foto siap diupload</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Hidden File Input -->
+                        <input 
+                            type="file" 
+                            id="file-input"
+                            accept="image/*" 
+                            capture="environment"
+                            class="hidden" 
+                            onchange="handlePhotoUpload(event)"
+                        />
+                    </div>
+
+                    <!-- Tombol Submit -->
+                    <button type="submit" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-sm hover:shadow transition-all flex items-center justify-center gap-2">
+                        <i data-lucide="check-circle" class="w-5 h-5"></i>
+                        Simpan Absen
+                    </button>
+                </form>
             </div>
-          </div>
         </div>
 
-      </main>
-    </div>
-  );
-}
+        <!-- Kolom Kanan: Rekap Data -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-full">
+                <div class="p-6 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        <i data-lucide="calendar" class="w-5 h-5 text-indigo-500"></i>
+                        Data Rekap Absensi
+                    </h2>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <div id="records-count" class="text-sm px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-600 font-medium">
+                            Total: 1
+                        </div>
+                        <button onclick="exportToCSV()" class="flex items-center gap-1.5 text-sm px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors font-medium shadow-sm" title="Unduh Data CSV">
+                            <i data-lucide="download" class="w-4 h-4"></i>
+                            <span class="hidden sm:inline">Export CSV</span>
+                        </button>
+                        <button id="btn-drive" onclick="uploadToGoogleDrive()" class="flex items-center gap-1.5 text-sm px-3 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors font-medium shadow-sm" title="Simpan Langsung ke Google Drive">
+                            <i id="icon-drive" data-lucide="cloud-upload" class="w-4 h-4"></i>
+                            <span id="text-drive" class="hidden sm:inline">Simpan ke Drive</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="p-6 flex-1 overflow-auto bg-slate-50/30 min-h-[400px]">
+                    <!-- Container List Data -->
+                    <div id="records-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Data akan di-render di sini oleh JavaScript -->
+                    </div>
+                    
+                    <!-- State Kosong -->
+                    <div id="empty-state" class="hidden h-full flex flex-col items-center justify-center text-slate-400 space-y-3 py-12">
+                        <i data-lucide="file-check" class="w-16 h-16 opacity-20"></i>
+                        <p>Belum ada data absensi hari ini.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Script Logika Aplikasi -->
+    <script>
+        // Inisialisasi ikon Lucide
+        lucide.createIcons();
+
+        // Constants & State
+        const CLIENT_ID = '482253857327-3q8duju4u8afgep0noo9s3bot82moor0.apps.googleusercontent.com';
+        const FOLDER_ID = '1OM3Zd6CIDyf7aISzoalvBbNItuzBpVKi';
+
+        let records = [
+            {
+                id: 1,
+                name: 'Budi Santoso',
+                date: new Date().toISOString().split('T')[0],
+                time: '08:15',
+                status: 'Hadir',
+                photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?fit=crop&w=150&h=150',
+            }
+        ];
+        
+        let currentPhotoData = null;
+        let isUploading = false;
+
+        // Set Default Date Display
+        const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        document.getElementById('current-date-display').textContent = new Date().toLocaleDateString('id-ID', dateOptions);
+        document.getElementById('input-date').value = new Date().toISOString().split('T')[0];
+
+        // Functions
+        function getStatusColor(status) {
+            switch(status) {
+                case 'Hadir': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+                case 'Sakit': return 'bg-amber-100 text-amber-800 border-amber-200';
+                case 'Izin': return 'bg-blue-100 text-blue-800 border-blue-200';
+                default: return 'bg-gray-100 text-gray-800 border-gray-200';
+            }
+        }
+
+        function showNotification(message, type = 'success') {
+            const toast = document.getElementById('notification-toast');
+            const msgEl = document.getElementById('notification-message');
+            const iconEl = document.getElementById('notification-icon');
+
+            msgEl.textContent = message;
+            
+            // Set styles based on type
+            if (type === 'success') {
+                toast.className = 'fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-all transform duration-300 translate-y-0 opacity-100 bg-emerald-600 text-white';
+                iconEl.setAttribute('data-lucide', 'check-circle');
+            } else {
+                toast.className = 'fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-all transform duration-300 translate-y-0 opacity-100 bg-red-500 text-white';
+                iconEl.setAttribute('data-lucide', 'alert-circle');
+            }
+            lucide.createIcons();
+
+            // Auto hide after 3s
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-[-100%]', 'opacity-0');
+            }, 3000);
+        }
+
+        function handlePhotoUpload(e) {
+            const file = e.target.files[0];
+            if (file) {
+                if (file.size > 5 * 1024 * 1024) {
+                    showNotification('Ukuran foto terlalu besar. Maksimal 5MB.', 'error');
+                    e.target.value = '';
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    currentPhotoData = reader.result;
+                    document.getElementById('preview-img').src = currentPhotoData;
+                    document.getElementById('photo-placeholder').classList.add('hidden');
+                    document.getElementById('photo-preview').classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function removePhoto() {
+            currentPhotoData = null;
+            document.getElementById('file-input').value = '';
+            document.getElementById('photo-placeholder').classList.remove('hidden');
+            document.getElementById('photo-preview').classList.add('hidden');
+        }
+
+        function handleDelete(id) {
+            if (window.confirm('Apakah Anda yakin ingin menghapus data ini?')) {
+                records = records.filter(record => record.id !== id);
+                renderRecords();
+                showNotification('Data berhasil dihapus.', 'success');
+            }
+        }
+
+        function renderRecords() {
+            const container = document.getElementById('records-container');
+            const emptyState = document.getElementById('empty-state');
+            const countEl = document.getElementById('records-count');
+
+            countEl.textContent = `Total: ${records.length}`;
+
+            if (records.length === 0) {
+                container.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            
+            // Build HTML for records
+            container.innerHTML = records.map(record => `
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow group relative">
+                    <div class="flex gap-4">
+                        <div class="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border border-slate-100 bg-slate-50 flex items-center justify-center">
+                            ${record.photo 
+                                ? `<img src="${record.photo}" alt="Foto ${record.name}" class="w-full h-full object-cover" />` 
+                                : `<i data-lucide="image" class="w-8 h-8 text-slate-300"></i>`
+                            }
+                        </div>
+                        
+                        <div class="flex-1 min-w-0">
+                            <h3 class="font-bold text-slate-800 truncate" title="${record.name}">${record.name}</h3>
+                            <div class="flex items-center gap-3 mt-1.5 text-xs text-slate-500">
+                                <span class="flex items-center gap-1"><i data-lucide="calendar" class="w-3.5 h-3.5"></i> ${record.date}</span>
+                                <span class="flex items-center gap-1"><i data-lucide="clock" class="w-3.5 h-3.5"></i> ${record.time}</span>
+                            </div>
+                            <div class="mt-2 flex items-center justify-between">
+                                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getStatusColor(record.status)}">
+                                ${record.status}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button onclick="handleDelete(${record.id})" class="absolute top-3 right-3 p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors opacity-0 group-hover:opacity-100" title="Hapus Data">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            `).join('');
+
+            lucide.createIcons();
+        }
+
+        // Handle Form Submit
+        document.getElementById('attendance-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const name = document.getElementById('input-name').value.trim();
+            const date = document.getElementById('input-date').value;
+            const status = document.getElementById('input-status').value;
+
+            if (!name) {
+                showNotification('Nama harus diisi!', 'error');
+                return;
+            }
+            if (!currentPhotoData) {
+                showNotification('Foto bukti wajib dilampirkan!', 'error');
+                return;
+            }
+
+            const newRecord = {
+                id: Date.now(),
+                name: name,
+                date: date,
+                time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+                status: status,
+                photo: currentPhotoData
+            };
+
+            // Add to beginning of array
+            records.unshift(newRecord);
+            
+            // Reset form
+            document.getElementById('input-name').value = '';
+            document.getElementById('input-date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('input-status').value = 'Hadir';
+            removePhoto();
+            
+            renderRecords();
+            showNotification('Absen berhasil disimpan!', 'success');
+        });
+
+        // Export CSV
+        function exportToCSV() {
+            if (records.length === 0) {
+                showNotification('Tidak ada data untuk diekspor', 'error');
+                return;
+            }
+
+            const headers = ['ID', 'Nama Lengkap', 'Tanggal', 'Waktu', 'Status'];
+            const csvRows = records.map(record => [
+                record.id,
+                `"${record.name}"`, 
+                record.date,
+                record.time,
+                record.status
+            ].join(','));
+
+            const csvString = [headers.join(','), ...csvRows].join('\n');
+            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            
+            link.href = url;
+            link.setAttribute('download', `Rekap_Absensi_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showNotification('File CSV berhasil diunduh!', 'success');
+        }
+
+        // Set Uploading UI State
+        function setUploadingState(uploading) {
+            isUploading = uploading;
+            const btn = document.getElementById('btn-drive');
+            const icon = document.getElementById('icon-drive');
+            const text = document.getElementById('text-drive');
+
+            if (uploading) {
+                btn.className = 'flex items-center gap-1.5 text-sm px-3 py-2 text-white bg-blue-400 cursor-not-allowed rounded-lg transition-colors font-medium shadow-sm';
+                icon.setAttribute('data-lucide', 'loader-2');
+                icon.classList.add('animate-spin');
+                text.textContent = 'Menyimpan...';
+            } else {
+                btn.className = 'flex items-center gap-1.5 text-sm px-3 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors font-medium shadow-sm';
+                icon.setAttribute('data-lucide', 'cloud-upload');
+                icon.classList.remove('animate-spin');
+                text.textContent = 'Simpan ke Drive';
+            }
+            lucide.createIcons();
+        }
+
+        // API Upload to Drive Execution
+        async function executeUpload(accessToken, folderId) {
+            try {
+                const headers = ['ID', 'Nama Lengkap', 'Tanggal', 'Waktu', 'Status'];
+                const csvRows = records.map(record => [
+                    record.id, `"${record.name}"`, record.date, record.time, record.status
+                ].join(','));
+                const csvString = [headers.join(','), ...csvRows].join('\n');
+
+                const metadata = {
+                    name: `Rekap_Absensi_${new Date().toISOString().split('T')[0]}.csv`,
+                    mimeType: 'text/csv',
+                    parents: [folderId]
+                };
+
+                const form = new FormData();
+                form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+                form.append('file', new Blob([csvString], { type: 'text/csv' }));
+
+                const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true', {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`
+                    },
+                    body: form
+                });
+
+                if (response.ok) {
+                    showNotification('Berhasil disimpan ke Google Drive!', 'success');
+                } else {
+                    const errData = await response.json();
+                    console.error('Drive API Error:', errData);
+                    showNotification('Gagal mengupload ke Drive. Cek Console.', 'error');
+                }
+            } catch (error) {
+                console.error(error);
+                showNotification('Terjadi kesalahan jaringan saat upload.', 'error');
+            } finally {
+                setUploadingState(false);
+            }
+        }
+
+        // Trigger Google Login
+        function uploadToGoogleDrive() {
+            if (isUploading) return;
+            
+            if (records.length === 0) {
+                showNotification('Tidak ada data untuk diupload', 'error');
+                return;
+            }
+
+            if (!window.google) {
+                showNotification('Sistem Google API belum siap. Tunggu sebentar.', 'error');
+                return;
+            }
+
+            try {
+                setUploadingState(true);
+                const client = window.google.accounts.oauth2.initTokenClient({
+                    client_id: CLIENT_ID,
+                    scope: 'https://www.googleapis.com/auth/drive.file',
+                    callback: (response) => {
+                        if (response && response.access_token) {
+                            executeUpload(response.access_token, FOLDER_ID);
+                        } else {
+                            setUploadingState(false);
+                        }
+                    },
+                    error_callback: (err) => {
+                        console.error('Auth Error:', err);
+                        showNotification('Gagal otentikasi akun Google', 'error');
+                        setUploadingState(false);
+                    }
+                });
+                client.requestAccessToken();
+            } catch (err) {
+                console.error(err);
+                showNotification('Konfigurasi Client ID tidak valid', 'error');
+                setUploadingState(false);
+            }
+        }
+
+        // Initial render
+        renderRecords();
+
+    </script>
+</body>
+</html>
