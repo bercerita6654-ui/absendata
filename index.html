@@ -34,6 +34,15 @@
         <p id="notification-message" class="font-medium text-white"></p>
     </div>
 
+    <!-- Image Modal (Pop-up Foto) -->
+    <div id="image-modal" class="fixed inset-0 z-[60] bg-black/80 hidden flex-col items-center justify-center p-4 transition-opacity backdrop-blur-sm">
+        <button onclick="closeModal()" class="absolute top-4 right-4 md:top-8 md:right-8 p-2 text-white/70 hover:text-white bg-black/50 hover:bg-black/80 rounded-full transition-all">
+            <i data-lucide="x" class="w-8 h-8"></i>
+        </button>
+        <img id="modal-image" src="" alt="Foto Absen Lebar" class="max-w-full max-h-[85vh] rounded-lg shadow-2xl object-contain" />
+        <p class="text-white/80 mt-4 font-medium text-sm">Klik di luar gambar atau tombol silang untuk menutup</p>
+    </div>
+
     <main class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         <!-- Kolom Kiri: Form Input -->
@@ -57,30 +66,36 @@
                         />
                     </div>
 
-                    <!-- Input Tanggal & Status (Grid) -->
+                    <!-- Input Tanggal & Waktu (Grid) -->
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-semibold text-slate-700 mb-1">Tanggal</label>
-                            <div class="relative">
-                                <input 
-                                    type="date" 
-                                    id="input-date"
-                                    class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all appearance-none"
-                                />
-                            </div>
+                            <input 
+                                type="date" 
+                                id="input-date"
+                                class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all appearance-none"
+                            />
                         </div>
-                        
                         <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-1">Status</label>
-                            <select 
-                                id="input-status"
-                                class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white"
-                            >
-                                <option value="Hadir">Hadir</option>
-                                <option value="Sakit">Sakit</option>
-                                <option value="Izin">Izin</option>
-                            </select>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Waktu</label>
+                            <input 
+                                type="time" 
+                                id="input-time"
+                                class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all appearance-none"
+                            />
                         </div>
+                    </div>
+
+                    <!-- Input Status -->
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Status Kehadiran</label>
+                        <select 
+                            id="input-status"
+                            class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white"
+                        >
+                            <option value="Masuk">Masuk</option>
+                            <option value="Pulang">Pulang</option>
+                        </select>
                     </div>
 
                     <!-- Upload Foto -->
@@ -107,11 +122,11 @@
 
                         <!-- Preview jika foto sudah dipilih -->
                         <div id="photo-preview" class="hidden relative mt-2 rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
-                            <img id="preview-img" src="" alt="Preview" class="w-full h-48 object-cover" />
+                            <img id="preview-img" src="" alt="Preview" class="w-full h-48 object-cover cursor-pointer" onclick="openModal(this.src)" title="Klik untuk perbesar" />
                             <button type="button" onclick="removePhoto()" class="absolute top-2 right-2 p-1.5 bg-white/90 backdrop-blur-sm text-red-600 rounded-full shadow-sm hover:bg-red-50 transition-colors" title="Hapus Foto">
                                 <i data-lucide="x" class="w-5 h-5"></i>
                             </button>
-                            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3">
+                            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3 pointer-events-none">
                                 <p class="text-white text-xs font-medium truncate">Foto siap diupload</p>
                             </div>
                         </div>
@@ -139,13 +154,24 @@
         <!-- Kolom Kanan: Rekap Data -->
         <div class="lg:col-span-2">
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-full">
-                <div class="p-6 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <!-- Header Rekap Data -->
+                <div class="p-6 border-b border-slate-100 bg-slate-50/50 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
                     <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
                         <i data-lucide="calendar" class="w-5 h-5 text-indigo-500"></i>
                         Data Rekap Absensi
                     </h2>
-                    <div class="flex flex-wrap items-center gap-2">
-                        <div id="records-count" class="text-sm px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-600 font-medium">
+                    
+                    <!-- Action Bar (Filters & Export) -->
+                    <div class="flex flex-wrap items-center gap-2 w-full xl:w-auto">
+                        <!-- Filter Pilihan -->
+                        <select id="filter-select" onchange="handleFilterChange(event)" class="text-sm px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-600 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer shadow-sm">
+                            <option value="all">Semua Waktu</option>
+                            <option value="daily">Hari Ini</option>
+                            <option value="weekly">Minggu Ini</option>
+                            <option value="monthly">Bulan Ini</option>
+                        </select>
+
+                        <div id="records-count" class="text-sm px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-slate-600 font-medium">
                             Total: 1
                         </div>
                         <button onclick="exportToCSV()" class="flex items-center gap-1.5 text-sm px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors font-medium shadow-sm" title="Unduh Data CSV">
@@ -168,7 +194,7 @@
                     <!-- State Kosong -->
                     <div id="empty-state" class="hidden h-full flex flex-col items-center justify-center text-slate-400 space-y-3 py-12">
                         <i data-lucide="file-check" class="w-16 h-16 opacity-20"></i>
-                        <p>Belum ada data absensi hari ini.</p>
+                        <p id="empty-text">Belum ada data absensi.</p>
                     </div>
                 </div>
             </div>
@@ -191,25 +217,67 @@
                 name: 'Budi Santoso',
                 date: new Date().toISOString().split('T')[0],
                 time: '08:15',
-                status: 'Hadir',
+                status: 'Masuk',
                 photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?fit=crop&w=150&h=150',
             }
         ];
         
         let currentPhotoData = null;
         let isUploading = false;
+        let currentFilter = 'all';
 
-        // Set Default Date Display
-        const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        document.getElementById('current-date-display').textContent = new Date().toLocaleDateString('id-ID', dateOptions);
-        document.getElementById('input-date').value = new Date().toISOString().split('T')[0];
+        // Set Default Date & Time Display
+        function setDateTimeDefaults() {
+            const now = new Date();
+            const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('current-date-display').textContent = now.toLocaleDateString('id-ID', dateOptions);
+            
+            // Format YYYY-MM-DD
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            document.getElementById('input-date').value = `${yyyy}-${mm}-${dd}`;
+            
+            // Format HH:MM
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('input-time').value = `${hours}:${minutes}`;
+        }
+        setDateTimeDefaults();
+
+        // Menangani Modal Foto
+        const modal = document.getElementById('image-modal');
+        const modalImg = document.getElementById('modal-image');
+
+        function openModal(imgSrc) {
+            if (!imgSrc) return;
+            modalImg.src = imgSrc;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            // Mencegah body scroll
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            modalImg.src = '';
+            // Mengembalikan body scroll
+            document.body.style.overflow = 'auto';
+        }
+
+        // Tutup modal jika klik background gelap
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
 
         // Functions
         function getStatusColor(status) {
             switch(status) {
-                case 'Hadir': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-                case 'Sakit': return 'bg-amber-100 text-amber-800 border-amber-200';
-                case 'Izin': return 'bg-blue-100 text-blue-800 border-blue-200';
+                case 'Masuk': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+                case 'Pulang': return 'bg-blue-100 text-blue-800 border-blue-200';
                 default: return 'bg-gray-100 text-gray-800 border-gray-200';
             }
         }
@@ -221,7 +289,6 @@
 
             msgEl.textContent = message;
             
-            // Set styles based on type
             if (type === 'success') {
                 toast.className = 'fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-all transform duration-300 translate-y-0 opacity-100 bg-emerald-600 text-white';
                 iconEl.setAttribute('data-lucide', 'check-circle');
@@ -231,7 +298,6 @@
             }
             lucide.createIcons();
 
-            // Auto hide after 3s
             setTimeout(() => {
                 toast.classList.remove('translate-y-0', 'opacity-100');
                 toast.classList.add('translate-y-[-100%]', 'opacity-0');
@@ -273,26 +339,71 @@
             }
         }
 
+        // Logic Filter Data
+        function handleFilterChange(e) {
+            currentFilter = e.target.value;
+            renderRecords();
+        }
+
+        function getFilteredRecords() {
+            if (currentFilter === 'all') return records;
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            return records.filter(record => {
+                const recordDate = new Date(record.date);
+                recordDate.setHours(0, 0, 0, 0);
+
+                if (currentFilter === 'daily') {
+                    // Cek Hari Ini
+                    return recordDate.getTime() === today.getTime();
+                } else if (currentFilter === 'weekly') {
+                    // Cek 7 Hari Terakhir
+                    const sevenDaysAgo = new Date(today);
+                    sevenDaysAgo.setDate(today.getDate() - 7);
+                    return recordDate >= sevenDaysAgo && recordDate <= today;
+                } else if (currentFilter === 'monthly') {
+                    // Cek Bulan Ini
+                    return recordDate.getMonth() === today.getMonth() && recordDate.getFullYear() === today.getFullYear();
+                }
+                return true;
+            });
+        }
+
         function renderRecords() {
             const container = document.getElementById('records-container');
             const emptyState = document.getElementById('empty-state');
             const countEl = document.getElementById('records-count');
+            const emptyText = document.getElementById('empty-text');
 
-            countEl.textContent = `Total: ${records.length}`;
+            const filteredRecords = getFilteredRecords();
+            countEl.textContent = `Total: ${filteredRecords.length}`;
 
-            if (records.length === 0) {
+            if (filteredRecords.length === 0) {
                 container.innerHTML = '';
                 emptyState.classList.remove('hidden');
+                
+                // Ubah teks kosong sesuai filter
+                if (currentFilter === 'daily') emptyText.textContent = 'Belum ada data absensi hari ini.';
+                else if (currentFilter === 'weekly') emptyText.textContent = 'Belum ada data absensi minggu ini.';
+                else if (currentFilter === 'monthly') emptyText.textContent = 'Belum ada data absensi bulan ini.';
+                else emptyText.textContent = 'Belum ada data absensi.';
+                
                 return;
             }
 
             emptyState.classList.add('hidden');
             
             // Build HTML for records
-            container.innerHTML = records.map(record => `
+            container.innerHTML = filteredRecords.map(record => `
                 <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow group relative">
                     <div class="flex gap-4">
-                        <div class="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border border-slate-100 bg-slate-50 flex items-center justify-center">
+                        <div 
+                            onclick="openModal('${record.photo || ''}')"
+                            class="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border border-slate-100 bg-slate-50 flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
+                            title="Klik untuk perbesar"
+                        >
                             ${record.photo 
                                 ? `<img src="${record.photo}" alt="Foto ${record.name}" class="w-full h-full object-cover" />` 
                                 : `<i data-lucide="image" class="w-8 h-8 text-slate-300"></i>`
@@ -328,10 +439,15 @@
             
             const name = document.getElementById('input-name').value.trim();
             const date = document.getElementById('input-date').value;
+            const time = document.getElementById('input-time').value; // Ambil value input waktu
             const status = document.getElementById('input-status').value;
 
             if (!name) {
                 showNotification('Nama harus diisi!', 'error');
+                return;
+            }
+            if (!time) {
+                showNotification('Waktu absensi harus diisi!', 'error');
                 return;
             }
             if (!currentPhotoData) {
@@ -343,7 +459,7 @@
                 id: Date.now(),
                 name: name,
                 date: date,
-                time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+                time: time,
                 status: status,
                 photo: currentPhotoData
             };
@@ -353,8 +469,8 @@
             
             // Reset form
             document.getElementById('input-name').value = '';
-            document.getElementById('input-date').value = new Date().toISOString().split('T')[0];
-            document.getElementById('input-status').value = 'Hadir';
+            setDateTimeDefaults(); // Reset date & time to current
+            document.getElementById('input-status').value = 'Masuk';
             removePhoto();
             
             renderRecords();
@@ -363,13 +479,14 @@
 
         // Export CSV
         function exportToCSV() {
-            if (records.length === 0) {
+            const dataToExport = getFilteredRecords(); // Export yang terfilter
+            if (dataToExport.length === 0) {
                 showNotification('Tidak ada data untuk diekspor', 'error');
                 return;
             }
 
             const headers = ['ID', 'Nama Lengkap', 'Tanggal', 'Waktu', 'Status'];
-            const csvRows = records.map(record => [
+            const csvRows = dataToExport.map(record => [
                 record.id,
                 `"${record.name}"`, 
                 record.date,
@@ -382,8 +499,9 @@
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             
+            let fileNameSuffix = currentFilter === 'all' ? 'Semua' : currentFilter === 'daily' ? 'Harian' : currentFilter === 'weekly' ? 'Mingguan' : 'Bulanan';
             link.href = url;
-            link.setAttribute('download', `Rekap_Absensi_${new Date().toISOString().split('T')[0]}.csv`);
+            link.setAttribute('download', `Rekap_Absensi_${fileNameSuffix}_${new Date().toISOString().split('T')[0]}.csv`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -415,14 +533,17 @@
         // API Upload to Drive Execution
         async function executeUpload(accessToken, folderId) {
             try {
+                const dataToUpload = getFilteredRecords();
                 const headers = ['ID', 'Nama Lengkap', 'Tanggal', 'Waktu', 'Status'];
-                const csvRows = records.map(record => [
+                const csvRows = dataToUpload.map(record => [
                     record.id, `"${record.name}"`, record.date, record.time, record.status
                 ].join(','));
                 const csvString = [headers.join(','), ...csvRows].join('\n');
 
+                let fileNameSuffix = currentFilter === 'all' ? 'Semua' : currentFilter === 'daily' ? 'Harian' : currentFilter === 'weekly' ? 'Mingguan' : 'Bulanan';
+
                 const metadata = {
-                    name: `Rekap_Absensi_${new Date().toISOString().split('T')[0]}.csv`,
+                    name: `Rekap_Absensi_${fileNameSuffix}_${new Date().toISOString().split('T')[0]}.csv`,
                     mimeType: 'text/csv',
                     parents: [folderId]
                 };
@@ -458,7 +579,8 @@
         function uploadToGoogleDrive() {
             if (isUploading) return;
             
-            if (records.length === 0) {
+            const dataToUpload = getFilteredRecords();
+            if (dataToUpload.length === 0) {
                 showNotification('Tidak ada data untuk diupload', 'error');
                 return;
             }
