@@ -217,7 +217,7 @@
         const FOLDER_ID = '1OM3Zd6CIDyf7aISzoalvBbNItuzBpVKi';
         
         // --- URL WEB APP GOOGLE APPS SCRIPT ---
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzj3u1Hy_ZBj29lxQRVuQiaY1NnicNbFaZ2hQE2ZuDcJoqnvh3I1Z-X-Q3G2RdoFpDr/exec';
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxtDXWzFfRZXGuMA-IjcvHXxClQrE7-tn89mlT4zkq8ZrpZLPxqkaMEtPW7l0RaCQM8/exec';
 
         let records = [];
         let currentPhotoData = null;
@@ -356,7 +356,7 @@
         }
         setDateTimeDefaults();
 
-        // --- INTERAKSI DOM (Di-bind ke Window agar dikenali HTML onclick) ---
+        // --- INTERAKSI DOM ---
         window.openModal = (imgSrc) => {
             if (!imgSrc) return;
             const modal = document.getElementById('image-modal');
@@ -538,31 +538,28 @@
             submitBtn.disabled = true;
 
             try {
-                // 1. Simpan ke Google Sheets & Google Drive via Apps Script
+                // 1. Persiapkan data format Form Data (Menghindari block CORS)
                 const base64Data = currentPhotoData.split(',')[1];
                 const mimeType = currentPhotoData.split(',')[0].match(/:(.*?);/)[1];
                 
-                const payload = {
-                    nama: name,
-                    tanggal: date,
-                    waktu: time,
-                    status: status,
-                    photoBase64: base64Data,
-                    mimeType: mimeType
-                };
+                // Gunakan URLSearchParams agar terbaca sebagai application/x-www-form-urlencoded
+                const formParams = new URLSearchParams();
+                formParams.append('nama', name);
+                formParams.append('tanggal', date);
+                formParams.append('waktu', time);
+                formParams.append('status', status);
+                formParams.append('photoBase64', base64Data);
+                formParams.append('mimeType', mimeType);
 
-                // Request ke Apps Script menggunakan mode 'no-cors' agar tidak diblokir browser
+                // Kirim tanpa custom header agar lolos tanpa blokade
                 await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
-                    mode: 'no-cors', 
-                    headers: {
-                        'Content-Type': 'text/plain',
-                    },
-                    body: JSON.stringify(payload)
+                    body: formParams
                 });
-                console.log("Request POST telah dikirim ke Apps Script.");
 
-                // 2. Simpan juga ke histori tampilan aplikasi lokal (Firebase/Local Storage)
+                console.log("Data berhasil dikirim ke Google Sheets.");
+
+                // 2. Simpan juga ke histori tampilan aplikasi lokal
                 if (dbUser && absensiCollection) {
                     await setDoc(doc(absensiCollection, newRecord.id.toString()), newRecord);
                 } else {
@@ -581,12 +578,11 @@
 
             } catch (err) {
                 console.error("Terjadi error Fetch: ", err);
-                // Terkadang fetch berhasil dikirim namun ditolak oleh browser akibat CORS redirect
                 records.unshift(newRecord);
                 localStorage.setItem('absensi_records', JSON.stringify(records));
                 renderRecords();
                 
-                showNotification('Absen disimpan lokal. Pastikan URL Apps Script sudah benar.', 'success');
+                showNotification('Absen disimpan lokal. Masih gagal kirim ke Sheet.', 'error');
             } finally {
                 // Kembalikan tombol
                 submitBtn.innerHTML = originalBtnHtml;
@@ -596,7 +592,6 @@
         });
 
         // --- BACKUP MANUAL (CSV + FOTO) MENGGUNAKAN OAUTH ---
-        // (Opsi tambahan jika sewaktu-waktu ingin backup massal manual ke Drive)
         window.exportToCSV = () => {
             const dataToExport = getFilteredRecords();
             if (dataToExport.length === 0) {
