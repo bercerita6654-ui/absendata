@@ -43,6 +43,33 @@
         <p class="text-white/80 mt-4 font-medium text-sm">Klik di luar gambar untuk menutup</p>
     </div>
 
+    <!-- Modal Kelola Nama -->
+    <div id="manage-names-modal" class="fixed inset-0 z-[65] bg-black/60 hidden flex-col items-center justify-center p-4 transition-opacity backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[85vh]">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 class="font-bold text-slate-800 flex items-center gap-2"><i data-lucide="users" class="w-5 h-5 text-indigo-500"></i> Kelola Nama Lengkap</h3>
+                <button type="button" onclick="closeManageNamesModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-5 border-b border-slate-100 bg-white">
+                <label class="block text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wider">Tambah Nama Baru</label>
+                <div class="flex gap-2">
+                    <input type="text" id="new-name-input" placeholder="Ketik nama lengkap..." class="flex-1 px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none text-sm transition-all">
+                    <button type="button" onclick="addNewName()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-all shadow-sm flex items-center gap-1">
+                        <i data-lucide="plus" class="w-4 h-4"></i> Tambah
+                    </button>
+                </div>
+            </div>
+            <div class="p-5 flex-1 overflow-auto bg-slate-50/50">
+                <label class="block text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wider">Daftar Nama Tersedia</label>
+                <ul id="manage-names-list" class="space-y-2">
+                    <!-- List items akan di-render di sini -->
+                </ul>
+            </div>
+        </div>
+    </div>
+
     <main class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         <!-- Kolom Kiri: Form Input -->
@@ -55,9 +82,14 @@
 
                 <form id="attendance-form" class="space-y-5">
                     
-                    <!-- Input Nama (Dropdown dari CSV) -->
+                    <!-- Input Nama (Dropdown dengan opsi Kelola) -->
                     <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-1">Nama Lengkap</label>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="block text-sm font-semibold text-slate-700">Nama Lengkap</label>
+                            <button type="button" onclick="openManageNamesModal()" class="text-xs font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition-colors bg-indigo-50 px-2 py-1 rounded-md">
+                                <i data-lucide="settings-2" class="w-3.5 h-3.5"></i> Kelola
+                            </button>
+                        </div>
                         <select 
                             id="input-name"
                             class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white"
@@ -184,12 +216,18 @@
         // --- URL WEB APP GOOGLE APPS SCRIPT ---
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxtDXWzFfRZXGuMA-IjcvHXxClQrE7-tn89mlT4zkq8ZrpZLPxqkaMEtPW7l0RaCQM8/exec';
 
-        // --- URL CSV DATA NAMA GOOGLE SHEET ---
+        // --- URL CSV DATA NAMA & STATUS GOOGLE SHEET ---
         const NAMES_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8ACyi03DJ77mANO19x_hJV82Xs8rNBBLyT9IIGc1tgYGNrv9WMufjm940iEPx4QU6Eta6T8Ekv2-X/pub?gid=219192679&single=true&output=csv';
 
         let records = [];
         let currentPhotoData = null;
         let currentFilter = 'all';
+        
+        // Data Nama
+        let baseNames = []; // Nama dari CSV
+        let nameDataMap = {}; // Hubungan Nama -> Status
+        let addedNames = JSON.parse(localStorage.getItem('added_names')) || []; // Nama baru yg ditambah manual
+        let hiddenNames = JSON.parse(localStorage.getItem('hidden_names')) || []; // Nama yg dihapus/disembunyikan
 
         // Fungsi Memuat Data Nama dari CSV
         async function fetchNames() {
@@ -197,32 +235,166 @@
                 const response = await fetch(NAMES_CSV_URL);
                 const csvText = await response.text();
                 
-                // Memisahkan berdasarkan baris baru, mengambil kolom pertama
-                const rows = csvText.split('\n').map(row => {
-                    return row.split(',')[0].replace(/['"]/g, '').trim(); 
-                }).filter(row => row !== '' && row.toLowerCase() !== 'nama' && row.toLowerCase() !== 'nama lengkap');
-
-                // Hilangkan duplikat nama jika ada
-                const uniqueNames = [...new Set(rows)];
-                const nameSelect = document.getElementById('input-name');
+                nameDataMap = {}; 
+                baseNames = [];
                 
-                // Kosongkan dan buat opsi default
-                nameSelect.innerHTML = '<option value="">Pilih Nama...</option>';
+                const lines = csvText.split('\n');
+                lines.forEach(line => {
+                    const cols = line.split(',');
+                    if (cols.length > 0) {
+                        const name = cols[0].replace(/['"\r]/g, '').trim();
+                        const mappedStatus = cols.length > 1 ? cols[1].replace(/['"\r]/g, '').trim() : '';
 
-                uniqueNames.forEach(name => {
-                    const opt = document.createElement('option');
-                    opt.value = name;
-                    opt.textContent = name;
-                    nameSelect.appendChild(opt);
+                        if (name && name.toLowerCase() !== 'nama' && name.toLowerCase() !== 'nama lengkap') {
+                            if (!baseNames.includes(name)) {
+                                baseNames.push(name);
+                            }
+                            nameDataMap[name] = mappedStatus;
+                        }
+                    }
                 });
+                updateNameDropdown();
             } catch (error) {
                 console.error("Gagal memuat list nama:", error);
-                document.getElementById('input-name').innerHTML = '<option value="">Gagal memuat Nama</option>';
+                updateNameDropdown(); // Tetap render nama lokal jika gagal load CSV
+            }
+        }
+
+        // Fungsi mengambil daftar nama yang aktif (Tergabung dari CSV & Manual, minus yg dihapus)
+        function getActiveNames() {
+            let allNames = [...new Set([...baseNames, ...addedNames])];
+            return allNames.filter(name => !hiddenNames.includes(name)).sort();
+        }
+
+        // Fungsi memperbarui UI Dropdown Nama
+        function updateNameDropdown() {
+            const nameSelect = document.getElementById('input-name');
+            const activeNames = getActiveNames();
+            const currentVal = nameSelect.value;
+
+            nameSelect.innerHTML = '<option value="">Pilih Nama...</option>';
+            
+            activeNames.forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = name;
+                opt.textContent = name;
+                nameSelect.appendChild(opt);
+            });
+
+            if (activeNames.includes(currentVal)) {
+                nameSelect.value = currentVal;
             }
         }
         
-        // Panggil fungsi saat web dimuat
+        // Event Listener untuk otomatis mengganti Status Kehadiran saat nama dipilih
+        document.getElementById('input-name').addEventListener('change', (e) => {
+            const selectedName = e.target.value;
+            const statusSelect = document.getElementById('input-status');
+            
+            if (selectedName && nameDataMap[selectedName]) {
+                const newStatus = nameDataMap[selectedName];
+                
+                let optionExists = Array.from(statusSelect.options).some(opt => opt.value.toLowerCase() === newStatus.toLowerCase());
+                
+                if (!optionExists && newStatus !== '') {
+                    const newOpt = document.createElement('option');
+                    newOpt.value = newStatus;
+                    newOpt.textContent = newStatus;
+                    statusSelect.appendChild(newOpt);
+                }
+                
+                if (newStatus !== '') {
+                    const exactOpt = Array.from(statusSelect.options).find(opt => opt.value.toLowerCase() === newStatus.toLowerCase());
+                    if (exactOpt) {
+                        statusSelect.value = exactOpt.value;
+                    }
+                }
+            }
+        });
+
         fetchNames();
+
+        // --- Logika Modal Kelola Nama ---
+        window.openManageNamesModal = () => {
+            document.getElementById('manage-names-modal').classList.remove('hidden');
+            document.getElementById('manage-names-modal').classList.add('flex');
+            document.body.style.overflow = 'hidden';
+            renderManageNamesList();
+        };
+
+        window.closeManageNamesModal = () => {
+            document.getElementById('manage-names-modal').classList.add('hidden');
+            document.getElementById('manage-names-modal').classList.remove('flex');
+            document.body.style.overflow = 'auto';
+        };
+
+        window.addNewName = () => {
+            const input = document.getElementById('new-name-input');
+            const newName = input.value.trim();
+            
+            if (!newName) return;
+            
+            // Jika nama sebelumnya disembunyikan, munculkan kembali
+            if (hiddenNames.includes(newName)) {
+                hiddenNames = hiddenNames.filter(n => n !== newName);
+                localStorage.setItem('hidden_names', JSON.stringify(hiddenNames));
+            }
+            
+            // Tambahkan ke memori lokal jika nama benar-benar baru
+            if (!baseNames.includes(newName) && !addedNames.includes(newName)) {
+                addedNames.push(newName);
+                localStorage.setItem('added_names', JSON.stringify(addedNames));
+            }
+            
+            input.value = '';
+            updateNameDropdown();
+            renderManageNamesList();
+            showNotification(`Nama "${newName}" berhasil ditambahkan.`, 'success');
+        };
+
+        window.deleteName = (name) => {
+            if (confirm(`Sembunyikan/Hapus nama "${name}" dari daftar dropdown?`)) {
+                if (addedNames.includes(name)) {
+                    // Hapus jika itu nama custom lokal
+                    addedNames = addedNames.filter(n => n !== name);
+                    localStorage.setItem('added_names', JSON.stringify(addedNames));
+                } else {
+                    // Sembunyikan jika nama berasal dari CSV
+                    if (!hiddenNames.includes(name)) {
+                        hiddenNames.push(name);
+                        localStorage.setItem('hidden_names', JSON.stringify(hiddenNames));
+                    }
+                }
+                updateNameDropdown();
+                renderManageNamesList();
+            }
+        };
+
+        function renderManageNamesList() {
+            const listContainer = document.getElementById('manage-names-list');
+            const activeNames = getActiveNames();
+            
+            if (activeNames.length === 0) {
+                listContainer.innerHTML = '<li class="text-center text-sm text-slate-500 py-4">Belum ada nama tersedia.</li>';
+                return;
+            }
+
+            listContainer.innerHTML = activeNames.map(name => {
+                const isCustom = addedNames.includes(name);
+                const badge = isCustom ? '<span class="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full ml-2 font-semibold">Baru</span>' : '';
+                
+                return `
+                <li class="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
+                    <span class="text-sm font-medium text-slate-700">${name} ${badge}</span>
+                    <button type="button" onclick="deleteName('${name}')" class="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-md transition-colors" title="Hapus Nama">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </li>
+                `;
+            }).join('');
+            
+            lucide.createIcons();
+        }
 
         // Load data absensi dari Local Storage
         const savedData = localStorage.getItem('absensi_records');
@@ -410,6 +582,7 @@
                 
                 // Reset form inputs
                 document.getElementById('input-name').value = '';
+                document.getElementById('input-status').value = 'Masuk';
                 removePhoto();
                 setDateTimeDefaults();
             } catch (err) {
