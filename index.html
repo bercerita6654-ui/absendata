@@ -55,15 +55,26 @@
 
                 <form id="attendance-form" class="space-y-5">
                     
-                    <!-- Input Nama -->
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-1">Nama Lengkap</label>
-                        <input 
-                            type="text" 
-                            id="input-name"
-                            placeholder="Masukkan nama Anda..."
-                            class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
-                        />
+                    <!-- Input Nama & Team (Grid) -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Nama Lengkap</label>
+                            <input 
+                                type="text" 
+                                id="input-name"
+                                placeholder="Masukkan nama..."
+                                class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                            />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Team</label>
+                            <select 
+                                id="input-team"
+                                class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white"
+                            >
+                                <option value="">Memuat Team...</option>
+                            </select>
+                        </div>
                     </div>
 
                     <!-- Input Tanggal & Waktu -->
@@ -77,7 +88,8 @@
                             />
                         </div>
                         <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-1">Waktu</label>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Waktu (24 Jam)</label>
+                            <!-- Input tipe 'time' secara otomatis menggunakan format 24 jam (HH:mm) di sistem web -->
                             <input 
                                 type="time" 
                                 id="input-time"
@@ -140,7 +152,7 @@
             </div>
         </div>
 
-        <!-- Kolom Ranan: Rekap Data -->
+        <!-- Kolom Kanan: Rekap Data -->
         <div class="lg:col-span-2">
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-full">
                 <div class="p-6 border-b border-slate-100 bg-slate-50/50 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
@@ -181,14 +193,50 @@
     <script type="module">
         lucide.createIcons();
 
-        // --- URL WEB APP GOOGLE APPS SCRIPT BARU ---
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw39WbmXkcrNEb61quIvSopo2AjzJIhqIOkR7cQ4n_nSU8UGqj8_mjyFdk-7AOsBa64/exec';
+        // --- URL WEB APP GOOGLE APPS SCRIPT ---
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxtDXWzFfRZXGuMA-IjcvHXxClQrE7-tn89mlT4zkq8ZrpZLPxqkaMEtPW7l0RaCQM8/exec';
+
+        // --- URL CSV DATA TEAM GOOGLE SHEET ---
+        const TEAM_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8ACyi03DJ77mANO19x_hJV82Xs8rNBBLyT9IIGc1tgYGNrv9WMufjm940iEPx4QU6Eta6T8Ekv2-X/pub?gid=219192679&single=true&output=csv';
 
         let records = [];
         let currentPhotoData = null;
         let currentFilter = 'all';
 
-        // Load data dari Local Storage
+        // Fungsi Memuat Data Team dari CSV
+        async function fetchTeams() {
+            try {
+                const response = await fetch(TEAM_CSV_URL);
+                const csvText = await response.text();
+                
+                // Memisahkan berdasarkan baris baru, mengambil kolom pertama
+                const rows = csvText.split('\n').map(row => {
+                    return row.split(',')[0].replace(/['"]/g, '').trim(); 
+                }).filter(row => row !== '' && row.toLowerCase() !== 'team' && row.toLowerCase() !== 'nama');
+
+                // Hilangkan duplikat team jika ada
+                const uniqueTeams = [...new Set(rows)];
+                const teamSelect = document.getElementById('input-team');
+                
+                // Kosongkan dan buat opsi default
+                teamSelect.innerHTML = '<option value="">Pilih Team...</option>';
+
+                uniqueTeams.forEach(team => {
+                    const opt = document.createElement('option');
+                    opt.value = team;
+                    opt.textContent = team;
+                    teamSelect.appendChild(opt);
+                });
+            } catch (error) {
+                console.error("Gagal memuat list team:", error);
+                document.getElementById('input-team').innerHTML = '<option value="">Gagal memuat Team</option>';
+            }
+        }
+        
+        // Panggil fungsi saat web dimuat
+        fetchTeams();
+
+        // Load data absensi dari Local Storage
         const savedData = localStorage.getItem('absensi_records');
         if (savedData) {
             records = JSON.parse(savedData);
@@ -221,7 +269,12 @@
             const mm = String(now.getMonth() + 1).padStart(2, '0');
             const dd = String(now.getDate()).padStart(2, '0');
             document.getElementById('input-date').value = `${yyyy}-${mm}-${dd}`;
-            document.getElementById('input-time').value = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            
+            // Format 24 jam (HH:mm)
+            const hours24 = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('input-time').value = `${hours24}:${minutes}`;
+            
             document.getElementById('current-date-display').textContent = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         }
         setDateTimeDefaults();
@@ -313,8 +366,8 @@
                         <div class="flex gap-4">
                             <img src="${r.photo}" onclick="openModal(this.src)" class="w-16 h-16 rounded-lg object-cover cursor-pointer" />
                             <div class="flex-1 min-w-0">
-                                <h3 class="font-bold text-slate-800 truncate">${r.name}</h3>
-                                <p class="text-xs text-slate-500 mt-1">${r.date} | ${r.time}</p>
+                                <h3 class="font-bold text-slate-800 truncate">${r.name} <span class="text-sm font-normal text-slate-500">(${r.team || '-'})</span></h3>
+                                <p class="text-xs text-slate-500 mt-1">${r.date} | Pukul ${r.time}</p>
                                 <span class="inline-block mt-2 px-2 py-0.5 rounded-full text-xs font-semibold ${r.status === 'Masuk' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'}">
                                     ${r.status}
                                 </span>
@@ -332,12 +385,15 @@
         document.getElementById('attendance-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const name = document.getElementById('input-name').value.trim();
+            const team = document.getElementById('input-team').value;
             const date = document.getElementById('input-date').value;
-            const time = document.getElementById('input-time').value;
+            const time = document.getElementById('input-time').value; // Waktu format 24h
             const status = document.getElementById('input-status').value;
             const btn = e.target.querySelector('button[type="submit"]');
 
-            if (!name || !currentPhotoData) return showNotification('Lengkapi data dan foto!', 'error');
+            if (!name) return showNotification('Nama Lengkap harus diisi!', 'error');
+            if (!team) return showNotification('Team harus dipilih!', 'error');
+            if (!currentPhotoData) return showNotification('Foto bukti wajib dilampirkan!', 'error');
 
             const originalHtml = btn.innerHTML;
             btn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Menyimpan...';
@@ -347,6 +403,7 @@
             try {
                 const params = new URLSearchParams();
                 params.append('nama', name);
+                params.append('team', team);
                 params.append('tanggal', date);
                 params.append('waktu', time);
                 params.append('status', status);
@@ -359,18 +416,21 @@
                     body: params
                 });
 
-                const newRec = { id: Date.now(), name, date, time, status, photo: currentPhotoData };
+                const newRec = { id: Date.now(), name, team, date, time, status, photo: currentPhotoData };
                 records.unshift(newRec);
                 localStorage.setItem('absensi_records', JSON.stringify(records));
                 renderRecords();
                 
                 showNotification('Berhasil disimpan ke Google Sheet!', 'success');
+                
+                // Reset form inputs (biarkan tanggal/waktu ke kondisi awal)
                 document.getElementById('input-name').value = '';
+                document.getElementById('input-team').value = '';
                 removePhoto();
                 setDateTimeDefaults();
             } catch (err) {
                 console.error(err);
-                showNotification('Gagal terhubung ke server, data tetap disimpan di HP.', 'error');
+                showNotification('Gagal terhubung ke server, data tetap disimpan di histori web.', 'error');
             } finally {
                 btn.innerHTML = originalHtml;
                 btn.disabled = false;
@@ -379,8 +439,8 @@
         });
 
         window.exportToCSV = () => {
-            const rows = [["Nama Lengkap", "Tanggal", "Waktu", "Status"]];
-            records.forEach(r => rows.push([r.name, r.date, r.time, r.status]));
+            const rows = [["Nama Lengkap", "Team", "Tanggal", "Waktu", "Status"]];
+            records.forEach(r => rows.push([r.name, r.team, r.date, r.time, r.status]));
             const csv = rows.map(r => r.join(',')).join('\n');
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = URL.createObjectURL(blob);
