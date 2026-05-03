@@ -169,7 +169,6 @@
                     <div class="grid grid-cols-7 bg-slate-100 border-b border-slate-200 text-center text-xs font-bold text-slate-500 py-2">
                         <div>Min</div><div>Sen</div><div>Sel</div><div>Rab</div><div>Kam</div><div>Jum</div><div>Sab</div>
                     </div>
-                    <!-- Garis pembatas menggunakan background dan gap-px -->
                     <div id="calendar-grid" class="grid grid-cols-7 bg-slate-200 gap-px">
                         <!-- Sel kalender akan di-render di sini -->
                     </div>
@@ -199,8 +198,8 @@
     <script type="module">
         lucide.createIcons();
 
-        // --- URL WEB APP GOOGLE APPS SCRIPT ---
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxtDXWzFfRZXGuMA-IjcvHXxClQrE7-tn89mlT4zkq8ZrpZLPxqkaMEtPW7l0RaCQM8/exec';
+        // --- URL WEB APP GOOGLE APPS SCRIPT BARU ---
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx0sYsgzUlza1VVut1CKRBPdlAfhvoMduiurYzJe8aOZR_CEHZpn8YiDuThfzIW7YvVEg/exec';
         const NAMES_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8ACyi03DJ77mANO19x_hJV82Xs8rNBBLyT9IIGc1tgYGNrv9WMufjm940iEPx4QU6Eta6T8Ekv2-X/pub?gid=219192679&single=true&output=csv';
 
         let records = JSON.parse(localStorage.getItem('absensi_records')) || [];
@@ -208,8 +207,8 @@
         
         // --- CALENDAR STATE ---
         let currentMonthDate = new Date();
-        currentMonthDate.setDate(1); // Set ke tgl 1 agar aman saat ganti bulan
-        let selectedDateStr = new Date().toISOString().split('T')[0]; // Format YYYY-MM-DD
+        currentMonthDate.setDate(1);
+        let selectedDateStr = new Date().toISOString().split('T')[0];
 
         // --- NAMA & STATUS LOGIC ---
         let baseNames = []; 
@@ -453,12 +452,12 @@
 
         function renderCalendar() {
             const year = currentMonthDate.getFullYear();
-            const month = currentMonthDate.getMonth(); // 0-11
+            const month = currentMonthDate.getMonth();
             
             const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
             document.getElementById('calendar-month-year').textContent = `${monthNames[month]} ${year}`;
 
-            const firstDay = new Date(year, month, 1).getDay(); // 0 (Sun) - 6 (Sat)
+            const firstDay = new Date(year, month, 1).getDay(); 
             const daysInMonth = new Date(year, month + 1, 0).getDate();
 
             const grid = document.getElementById('calendar-grid');
@@ -477,10 +476,8 @@
                 
                 const dayRecords = records.filter(r => r.date === dateStr);
                 
-                // MENGGABUNGKAN indikator kalender berdasarkan nama
                 const groupedDayRecords = {};
                 dayRecords.forEach(r => {
-                    // Menyimpan data terbaru dari orang tersebut
                     groupedDayRecords[r.name] = r; 
                 });
                 const uniqueDayRecords = Object.values(groupedDayRecords);
@@ -547,7 +544,6 @@
                 emptyState.classList.add('hidden');
                 emptyState.classList.remove('flex');
                 
-                // MENGELOMPOKKAN REKAP BERDASARKAN NAMA LENGKAP
                 const groupedRecords = {};
                 dayRecords.forEach(r => {
                     if (!groupedRecords[r.name]) {
@@ -558,12 +554,9 @@
                 
                 container.innerHTML = Object.keys(groupedRecords).map(name => {
                     const userRecs = groupedRecords[name];
-                    // Urutkan berdasarkan waktu agar rapi
                     userRecs.sort((a, b) => a.time.localeCompare(b.time));
-                    // Ambil foto dari absen terakhir
                     const latestPhoto = userRecs[userRecs.length - 1].photo;
 
-                    // Buat list status untuk pengguna tersebut
                     const statusesHtml = userRecs.map(r => `
                         <div class="flex items-center justify-between mt-1.5 group/item">
                             <div class="flex items-center gap-2 text-xs text-slate-500">
@@ -624,12 +617,11 @@
                 });
 
                 const newRec = { id: Date.now(), name, date, time, status, photo: currentPhotoData };
-                records.unshift(newRec); // Simpan di atas
+                records.unshift(newRec); 
                 localStorage.setItem('absensi_records', JSON.stringify(records));
                 
                 showNotification('Berhasil disimpan ke Google Sheet!', 'success');
                 
-                // Pindah kalender ke tanggal yg baru diabsen
                 selectedDateStr = date;
                 const dateObj = new Date(date);
                 currentMonthDate.setMonth(dateObj.getMonth());
@@ -638,7 +630,6 @@
                 renderCalendar();
                 renderSelectedDay();
                 
-                // Reset form
                 document.getElementById('input-name').value = '';
                 document.getElementById('input-status').value = 'Masuk';
                 removePhoto();
@@ -646,7 +637,6 @@
             } catch (err) {
                 console.error(err);
                 showNotification('Gagal terhubung ke server, data tetap disimpan di histori web.', 'error');
-                // Tetap render lokal jika gagal
                 selectedDateStr = date;
                 renderCalendar();
                 renderSelectedDay();
@@ -657,7 +647,7 @@
             }
         });
 
-        // --- EXPORT CSV (EXPORT BULAN YANG DILIHAT) ---
+        // --- EXPORT CSV ---
         window.exportToCSV = () => {
             const year = currentMonthDate.getFullYear();
             const month = String(currentMonthDate.getMonth() + 1).padStart(2, '0');
