@@ -8,8 +8,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Google Identity Services -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-800 font-sans p-4 md:p-8">
 
@@ -34,7 +32,7 @@
         <p id="notification-message" class="font-medium text-white"></p>
     </div>
 
-    <!-- Image Modal (Pop-up Foto) -->
+    <!-- Modal Foto Layar Penuh -->
     <div id="image-modal" class="fixed inset-0 z-[60] bg-black/80 hidden flex-col items-center justify-center p-4 transition-opacity backdrop-blur-sm">
         <button onclick="closeModal()" class="absolute top-4 right-4 md:top-8 md:right-8 p-2 text-white/70 hover:text-white bg-black/50 hover:bg-black/80 rounded-full transition-all">
             <i data-lucide="x" class="w-8 h-8"></i>
@@ -63,25 +61,22 @@
             </div>
             <div class="p-5 flex-1 overflow-auto bg-slate-50/50">
                 <label class="block text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wider">Daftar Nama Tersedia</label>
-                <ul id="manage-names-list" class="space-y-2">
-                    <!-- List items akan di-render di sini -->
-                </ul>
+                <ul id="manage-names-list" class="space-y-2"></ul>
             </div>
         </div>
     </div>
 
     <main class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        <!-- Kolom Kiri: Form Input -->
+        <!-- KOLOM KIRI: FORM INPUT -->
         <div class="lg:col-span-1">
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
                 <h2 class="text-xl font-bold text-slate-800 mb-6 border-b pb-4 flex items-center gap-2">
-                    <i data-lucide="user" class="w-5 h-5 text-indigo-500"></i>
-                    Form Absensi
+                    <i data-lucide="user-plus" class="w-5 h-5 text-indigo-500"></i>
+                    Isi Absensi
                 </h2>
 
                 <form id="attendance-form" class="space-y-5">
-                    
                     <!-- Input Nama (Dropdown dengan opsi Kelola) -->
                     <div>
                         <div class="flex justify-between items-center mb-1">
@@ -90,10 +85,7 @@
                                 <i data-lucide="settings-2" class="w-3.5 h-3.5"></i> Kelola
                             </button>
                         </div>
-                        <select 
-                            id="input-name"
-                            class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white"
-                        >
+                        <select id="input-name" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white">
                             <option value="">Memuat Nama...</option>
                         </select>
                     </div>
@@ -102,29 +94,18 @@
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-semibold text-slate-700 mb-1">Tanggal</label>
-                            <input 
-                                type="date" 
-                                id="input-date"
-                                class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all appearance-none"
-                            />
+                            <input type="date" id="input-date" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all appearance-none" />
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-slate-700 mb-1">Waktu (24 Jam)</label>
-                            <input 
-                                type="time" 
-                                id="input-time"
-                                class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all appearance-none"
-                            />
+                            <input type="time" id="input-time" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all appearance-none" />
                         </div>
                     </div>
 
                     <!-- Input Status -->
                     <div>
                         <label class="block text-sm font-semibold text-slate-700 mb-1">Status Kehadiran</label>
-                        <select 
-                            id="input-status"
-                            class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white"
-                        >
+                        <select id="input-status" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white">
                             <option value="Masuk">Masuk</option>
                             <option value="Pulang">Pulang</option>
                         </select>
@@ -133,20 +114,15 @@
                     <!-- Upload Foto -->
                     <div>
                         <label class="block text-sm font-semibold text-slate-700 mb-1">Bukti Foto / Selfie</label>
-                        
                         <div id="photo-placeholder" onclick="document.getElementById('file-input').click()" class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer hover:bg-slate-50 hover:border-indigo-400 transition-all group">
                             <div class="space-y-2 text-center">
                                 <div class="flex justify-center gap-3">
-                                    <div class="p-3 bg-indigo-50 rounded-full text-indigo-600 group-hover:bg-indigo-100 transition-colors">
-                                        <i data-lucide="camera" class="w-6 h-6"></i>
-                                    </div>
-                                    <div class="p-3 bg-indigo-50 rounded-full text-indigo-600 group-hover:bg-indigo-100 transition-colors">
-                                        <i data-lucide="image" class="w-6 h-6"></i>
-                                    </div>
+                                    <div class="p-3 bg-indigo-50 rounded-full text-indigo-600 group-hover:bg-indigo-100 transition-colors"><i data-lucide="camera" class="w-6 h-6"></i></div>
+                                    <div class="p-3 bg-indigo-50 rounded-full text-indigo-600 group-hover:bg-indigo-100 transition-colors"><i data-lucide="image" class="w-6 h-6"></i></div>
                                 </div>
                                 <div class="text-sm text-slate-600 flex flex-col">
                                     <span class="font-semibold text-indigo-600">Klik untuk upload foto</span>
-                                    <span class="text-xs mt-1">Bisa ambil dari kamera atau galeri</span>
+                                    <span class="text-xs mt-1">Gunakan kamera atau galeri</span>
                                 </div>
                             </div>
                         </div>
@@ -156,56 +132,66 @@
                             <button type="button" onclick="removePhoto()" class="absolute top-2 right-2 p-1.5 bg-white/90 backdrop-blur-sm text-red-600 rounded-full shadow-sm hover:bg-red-50 transition-colors" title="Hapus Foto">
                                 <i data-lucide="x" class="w-5 h-5"></i>
                             </button>
-                            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3 pointer-events-none">
-                                <p class="text-white text-xs font-medium truncate">Foto siap diupload</p>
-                            </div>
                         </div>
-                        
                         <input type="file" id="file-input" accept="image/*" capture="environment" class="hidden" onchange="handlePhotoUpload(event)" />
                     </div>
 
                     <button type="submit" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-sm hover:shadow transition-all flex items-center justify-center gap-2">
-                        <i data-lucide="check-circle" class="w-5 h-5"></i>
-                        Simpan Absen
+                        <i data-lucide="check-circle" class="w-5 h-5"></i> Simpan Absen
                     </button>
                 </form>
             </div>
         </div>
 
-        <!-- Kolom Kanan: Rekap Data -->
+        <!-- KOLOM KANAN: CALENDAR VIEW -->
         <div class="lg:col-span-2">
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-full">
-                <div class="p-6 border-b border-slate-100 bg-slate-50/50 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
-                    <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
-                        <i data-lucide="calendar" class="w-5 h-5 text-indigo-500"></i>
-                        Data Rekap Absensi
+                
+                <!-- Toolbar Kalender -->
+                <div class="p-4 md:px-6 border-b border-slate-100 flex flex-wrap justify-between items-center gap-4 bg-slate-50/80">
+                    <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <i data-lucide="calendar-days" class="w-5 h-5 text-indigo-500"></i> Kalender Rekap
                     </h2>
                     
-                    <div class="flex flex-wrap items-center gap-2 w-full xl:w-auto">
-                        <select id="filter-select" onchange="handleFilterChange(event)" class="text-sm px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-600 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer shadow-sm">
-                            <option value="all">Semua Waktu</option>
-                            <option value="daily">Hari Ini</option>
-                            <option value="weekly">Minggu Ini</option>
-                            <option value="monthly">Bulan Ini</option>
-                        </select>
+                    <div class="flex items-center bg-white border border-slate-200 rounded-lg shadow-sm p-1">
+                        <button onclick="prevMonth()" class="p-1.5 rounded-md hover:bg-slate-100 text-slate-600 transition-colors"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+                        <span id="calendar-month-year" class="font-bold w-32 text-center text-slate-700 text-sm">Bulan Tahun</span>
+                        <button onclick="nextMonth()" class="p-1.5 rounded-md hover:bg-slate-100 text-slate-600 transition-colors"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+                    </div>
 
-                        <div id="records-count" class="text-sm px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-slate-600 font-medium">
-                            Total: 0
-                        </div>
-                        <button onclick="exportToCSV()" class="flex items-center gap-1.5 text-sm px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors font-medium shadow-sm">
-                            <i data-lucide="download" class="w-4 h-4"></i>
-                            <span class="hidden sm:inline">Export CSV</span>
-                        </button>
+                    <button onclick="exportToCSV()" class="flex items-center gap-1.5 text-sm px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors font-medium shadow-sm">
+                        <i data-lucide="download" class="w-4 h-4"></i><span class="hidden sm:inline">Export CSV</span>
+                    </button>
+                </div>
+
+                <!-- Grid Kalender -->
+                <div class="flex-none">
+                    <div class="grid grid-cols-7 bg-slate-100 border-b border-slate-200 text-center text-xs font-bold text-slate-500 py-2">
+                        <div>Min</div><div>Sen</div><div>Sel</div><div>Rab</div><div>Kam</div><div>Jum</div><div>Sab</div>
+                    </div>
+                    <!-- Garis pembatas menggunakan background dan gap-px -->
+                    <div id="calendar-grid" class="grid grid-cols-7 bg-slate-200 gap-px">
+                        <!-- Sel kalender akan di-render di sini -->
                     </div>
                 </div>
 
-                <div class="p-6 flex-1 overflow-auto bg-slate-50/30 min-h-[400px]">
-                    <div id="records-container" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-                    <div id="empty-state" class="hidden h-full flex flex-col items-center justify-center text-slate-400 space-y-3 py-12">
-                        <i data-lucide="file-check" class="w-16 h-16 opacity-20"></i>
-                        <p id="empty-text">Belum ada data absensi.</p>
+                <!-- Daftar Riwayat pada Tanggal Terpilih -->
+                <div class="p-4 md:p-6 bg-slate-50/50 flex-1 overflow-auto border-t border-slate-200">
+                    <h3 class="font-bold text-slate-700 mb-4 flex items-center gap-2">
+                        <i data-lucide="list-checks" class="w-5 h-5 text-indigo-500"></i> 
+                        Data Absensi: <span id="selected-date-text" class="text-indigo-600 border-b-2 border-indigo-200"></span>
+                    </h3>
+                    
+                    <div id="day-records-container" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <!-- Data Card harian -->
+                    </div>
+                    
+                    <div id="day-empty-state" class="hidden flex-col items-center justify-center text-slate-400 py-8">
+                        <i data-lucide="inbox" class="w-12 h-12 opacity-20 mb-3"></i>
+                        <p class="text-sm font-medium">Belum ada absen di hari ini.</p>
                     </div>
                 </div>
+
             </div>
         </div>
     </main>
@@ -215,151 +201,121 @@
 
         // --- URL WEB APP GOOGLE APPS SCRIPT ---
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxtDXWzFfRZXGuMA-IjcvHXxClQrE7-tn89mlT4zkq8ZrpZLPxqkaMEtPW7l0RaCQM8/exec';
-
-        // --- URL CSV DATA NAMA & STATUS GOOGLE SHEET ---
         const NAMES_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8ACyi03DJ77mANO19x_hJV82Xs8rNBBLyT9IIGc1tgYGNrv9WMufjm940iEPx4QU6Eta6T8Ekv2-X/pub?gid=219192679&single=true&output=csv';
 
-        let records = [];
+        let records = JSON.parse(localStorage.getItem('absensi_records')) || [];
         let currentPhotoData = null;
-        let currentFilter = 'all';
         
-        // Data Nama
-        let baseNames = []; // Nama dari CSV
-        let nameDataMap = {}; // Hubungan Nama -> Status
-        let addedNames = JSON.parse(localStorage.getItem('added_names')) || []; // Nama baru yg ditambah manual
-        let hiddenNames = JSON.parse(localStorage.getItem('hidden_names')) || []; // Nama yg dihapus/disembunyikan
+        // --- CALENDAR STATE ---
+        let currentMonthDate = new Date();
+        currentMonthDate.setDate(1); // Set ke tgl 1 agar aman saat ganti bulan
+        let selectedDateStr = new Date().toISOString().split('T')[0]; // Format YYYY-MM-DD
 
-        // Fungsi Memuat Data Nama dari CSV
+        // --- NAMA & STATUS LOGIC ---
+        let baseNames = []; 
+        let nameDataMap = {}; 
+        let addedNames = JSON.parse(localStorage.getItem('added_names')) || []; 
+        let hiddenNames = JSON.parse(localStorage.getItem('hidden_names')) || []; 
+
         async function fetchNames() {
             try {
                 const response = await fetch(NAMES_CSV_URL);
                 const csvText = await response.text();
-                
                 nameDataMap = {}; 
                 baseNames = [];
-                
                 const lines = csvText.split('\n');
                 lines.forEach(line => {
                     const cols = line.split(',');
                     if (cols.length > 0) {
                         const name = cols[0].replace(/['"\r]/g, '').trim();
                         const mappedStatus = cols.length > 1 ? cols[1].replace(/['"\r]/g, '').trim() : '';
-
                         if (name && name.toLowerCase() !== 'nama' && name.toLowerCase() !== 'nama lengkap') {
-                            if (!baseNames.includes(name)) {
-                                baseNames.push(name);
-                            }
+                            if (!baseNames.includes(name)) baseNames.push(name);
                             nameDataMap[name] = mappedStatus;
                         }
                     }
                 });
                 updateNameDropdown();
             } catch (error) {
-                console.error("Gagal memuat list nama:", error);
-                updateNameDropdown(); // Tetap render nama lokal jika gagal load CSV
+                console.error("Gagal load CSV nama:", error);
+                updateNameDropdown(); 
             }
         }
 
-        // Fungsi mengambil daftar nama yang aktif (Tergabung dari CSV & Manual, minus yg dihapus)
         function getActiveNames() {
             let allNames = [...new Set([...baseNames, ...addedNames])];
             return allNames.filter(name => !hiddenNames.includes(name)).sort();
         }
 
-        // Fungsi memperbarui UI Dropdown Nama
         function updateNameDropdown() {
             const nameSelect = document.getElementById('input-name');
             const activeNames = getActiveNames();
             const currentVal = nameSelect.value;
-
             nameSelect.innerHTML = '<option value="">Pilih Nama...</option>';
-            
             activeNames.forEach(name => {
                 const opt = document.createElement('option');
                 opt.value = name;
                 opt.textContent = name;
                 nameSelect.appendChild(opt);
             });
-
-            if (activeNames.includes(currentVal)) {
-                nameSelect.value = currentVal;
-            }
+            if (activeNames.includes(currentVal)) nameSelect.value = currentVal;
         }
         
-        // Event Listener untuk otomatis mengganti Status Kehadiran saat nama dipilih
         document.getElementById('input-name').addEventListener('change', (e) => {
             const selectedName = e.target.value;
             const statusSelect = document.getElementById('input-status');
-            
             if (selectedName && nameDataMap[selectedName]) {
                 const newStatus = nameDataMap[selectedName];
-                
                 let optionExists = Array.from(statusSelect.options).some(opt => opt.value.toLowerCase() === newStatus.toLowerCase());
-                
                 if (!optionExists && newStatus !== '') {
                     const newOpt = document.createElement('option');
                     newOpt.value = newStatus;
                     newOpt.textContent = newStatus;
                     statusSelect.appendChild(newOpt);
                 }
-                
                 if (newStatus !== '') {
                     const exactOpt = Array.from(statusSelect.options).find(opt => opt.value.toLowerCase() === newStatus.toLowerCase());
-                    if (exactOpt) {
-                        statusSelect.value = exactOpt.value;
-                    }
+                    if (exactOpt) statusSelect.value = exactOpt.value;
                 }
             }
         });
 
-        fetchNames();
-
-        // --- Logika Modal Kelola Nama ---
+        // --- MODAL NAMA ---
         window.openManageNamesModal = () => {
             document.getElementById('manage-names-modal').classList.remove('hidden');
             document.getElementById('manage-names-modal').classList.add('flex');
-            document.body.style.overflow = 'hidden';
             renderManageNamesList();
         };
 
         window.closeManageNamesModal = () => {
             document.getElementById('manage-names-modal').classList.add('hidden');
             document.getElementById('manage-names-modal').classList.remove('flex');
-            document.body.style.overflow = 'auto';
         };
 
         window.addNewName = () => {
             const input = document.getElementById('new-name-input');
             const newName = input.value.trim();
-            
             if (!newName) return;
-            
-            // Jika nama sebelumnya disembunyikan, munculkan kembali
             if (hiddenNames.includes(newName)) {
                 hiddenNames = hiddenNames.filter(n => n !== newName);
                 localStorage.setItem('hidden_names', JSON.stringify(hiddenNames));
             }
-            
-            // Tambahkan ke memori lokal jika nama benar-benar baru
             if (!baseNames.includes(newName) && !addedNames.includes(newName)) {
                 addedNames.push(newName);
                 localStorage.setItem('added_names', JSON.stringify(addedNames));
             }
-            
             input.value = '';
             updateNameDropdown();
             renderManageNamesList();
-            showNotification(`Nama "${newName}" berhasil ditambahkan.`, 'success');
+            showNotification(`Nama ditambahkan.`, 'success');
         };
 
         window.deleteName = (name) => {
-            if (confirm(`Sembunyikan/Hapus nama "${name}" dari daftar dropdown?`)) {
+            if (confirm(`Sembunyikan/Hapus nama "${name}"?`)) {
                 if (addedNames.includes(name)) {
-                    // Hapus jika itu nama custom lokal
                     addedNames = addedNames.filter(n => n !== name);
                     localStorage.setItem('added_names', JSON.stringify(addedNames));
                 } else {
-                    // Sembunyikan jika nama berasal dari CSV
                     if (!hiddenNames.includes(name)) {
                         hiddenNames.push(name);
                         localStorage.setItem('hidden_names', JSON.stringify(hiddenNames));
@@ -373,42 +329,28 @@
         function renderManageNamesList() {
             const listContainer = document.getElementById('manage-names-list');
             const activeNames = getActiveNames();
-            
             if (activeNames.length === 0) {
                 listContainer.innerHTML = '<li class="text-center text-sm text-slate-500 py-4">Belum ada nama tersedia.</li>';
                 return;
             }
-
             listContainer.innerHTML = activeNames.map(name => {
                 const isCustom = addedNames.includes(name);
                 const badge = isCustom ? '<span class="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full ml-2 font-semibold">Baru</span>' : '';
-                
                 return `
                 <li class="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
                     <span class="text-sm font-medium text-slate-700">${name} ${badge}</span>
-                    <button type="button" onclick="deleteName('${name}')" class="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-md transition-colors" title="Hapus Nama">
-                        <i data-lucide="trash-2" class="w-4 h-4"></i>
-                    </button>
-                </li>
-                `;
+                    <button type="button" onclick="deleteName('${name}')" class="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-md transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                </li>`;
             }).join('');
-            
             lucide.createIcons();
         }
 
-        // Load data absensi dari Local Storage
-        const savedData = localStorage.getItem('absensi_records');
-        if (savedData) {
-            records = JSON.parse(savedData);
-        }
-        renderRecords();
-
+        // --- UTILITIES ---
         function showNotification(message, type = 'success') {
             const toast = document.getElementById('notification-toast');
             const msgEl = document.getElementById('notification-message');
             const iconEl = document.getElementById('notification-icon');
             msgEl.textContent = message;
-            
             if (type === 'success') {
                 toast.className = 'fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-all transform duration-300 translate-y-0 opacity-100 bg-emerald-600 text-white';
                 iconEl.setAttribute('data-lucide', 'check-circle');
@@ -429,15 +371,9 @@
             const mm = String(now.getMonth() + 1).padStart(2, '0');
             const dd = String(now.getDate()).padStart(2, '0');
             document.getElementById('input-date').value = `${yyyy}-${mm}-${dd}`;
-            
-            // Format 24 jam (HH:mm)
-            const hours24 = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            document.getElementById('input-time').value = `${hours24}:${minutes}`;
-            
+            document.getElementById('input-time').value = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
             document.getElementById('current-date-display').textContent = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         }
-        setDateTimeDefaults();
 
         window.openModal = (src) => {
             document.getElementById('modal-image').src = src;
@@ -490,50 +426,137 @@
         };
 
         window.handleDelete = (id) => {
-            if (confirm('Hapus histori ini?')) {
+            if (confirm('Hapus histori absen ini dari daftar lokal?')) {
                 records = records.filter(r => r.id !== id);
                 localStorage.setItem('absensi_records', JSON.stringify(records));
-                renderRecords();
+                renderCalendar(); // Re-render kalender untuk hapus indikator foto jika kosong
+                renderSelectedDay();
             }
         };
 
-        window.handleFilterChange = (e) => {
-            currentFilter = e.target.value;
-            renderRecords();
+        // --- CALENDAR LOGIC ---
+        window.prevMonth = () => {
+            currentMonthDate.setMonth(currentMonthDate.getMonth() - 1);
+            renderCalendar();
         };
 
-        function renderRecords() {
-            const container = document.getElementById('records-container');
-            const filtered = records.filter(r => {
-                if (currentFilter === 'all') return true;
-                const d = new Date(r.date);
-                const today = new Date();
-                today.setHours(0,0,0,0);
-                d.setHours(0,0,0,0);
-                if (currentFilter === 'daily') return d.getTime() === today.getTime();
-                if (currentFilter === 'monthly') return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
-                return true;
-            });
+        window.nextMonth = () => {
+            currentMonthDate.setMonth(currentMonthDate.getMonth() + 1);
+            renderCalendar();
+        };
 
-            document.getElementById('records-count').textContent = `Total: ${filtered.length}`;
-            if (filtered.length === 0) {
+        window.selectDate = (dateStr) => {
+            selectedDateStr = dateStr;
+            renderCalendar(); 
+            renderSelectedDay();
+        };
+
+        function renderCalendar() {
+            const year = currentMonthDate.getFullYear();
+            const month = currentMonthDate.getMonth(); // 0-11
+            
+            const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+            document.getElementById('calendar-month-year').textContent = `${monthNames[month]} ${year}`;
+
+            const firstDay = new Date(year, month, 1).getDay(); // 0 (Sun) - 6 (Sat)
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            const grid = document.getElementById('calendar-grid');
+            grid.innerHTML = '';
+
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            // Render Kotak Kosong (Padding Awal Bulan)
+            for (let i = 0; i < firstDay; i++) {
+                grid.innerHTML += `<div class="bg-slate-50 border-t border-transparent h-20 sm:h-[90px]"></div>`;
+            }
+
+            // Render Tanggal
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const isToday = dateStr === todayStr;
+                const isSelected = dateStr === selectedDateStr;
+                
+                // Cari apakah ada absen di hari ini
+                const dayRecords = records.filter(r => r.date === dateStr);
+                
+                let indicators = '';
+                if (dayRecords.length > 0) {
+                    // Maksimal tampilkan 3 avatar/dot
+                    const limit = 3;
+                    const showRecs = dayRecords.slice(0, limit);
+                    
+                    indicators += `<div class="flex -space-x-1.5 justify-center mt-1 sm:mt-1.5 w-full px-1">`;
+                    showRecs.forEach(r => {
+                        const ringColor = r.status === 'Masuk' ? 'ring-emerald-400' : 'ring-blue-400';
+                        if(r.photo) {
+                             indicators += `<img src="${r.photo}" class="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover ring-2 ${ringColor} shadow-sm bg-white" />`;
+                        } else {
+                             indicators += `<div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-slate-200 ring-2 ${ringColor}"></div>`;
+                        }
+                    });
+                    if (dayRecords.length > limit) {
+                        indicators += `<div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-slate-100 text-[9px] font-bold flex items-center justify-center ring-2 ring-slate-200 text-slate-600 z-10">+${dayRecords.length - limit}</div>`;
+                    }
+                    indicators += `</div>`;
+                }
+
+                // Styling Khusus Hari Ini & Dipilih
+                let cellClass = `bg-white h-20 sm:h-[90px] p-1 flex flex-col items-center border-t-[3px] transition-all cursor-pointer hover:bg-indigo-50/60 `;
+                cellClass += isSelected ? 'border-t-indigo-500 bg-indigo-50 shadow-inner' : 'border-t-transparent';
+                
+                let textClass = `text-sm font-semibold w-7 h-7 flex items-center justify-center rounded-full mt-0.5 `;
+                textClass += isToday ? 'bg-indigo-600 text-white' : 'text-slate-700';
+
+                grid.innerHTML += `
+                    <div onclick="selectDate('${dateStr}')" class="${cellClass}">
+                        <span class="${textClass}">${day}</span>
+                        ${indicators}
+                    </div>
+                `;
+            }
+
+            // Render Kotak Kosong (Padding Akhir Bulan) untuk melengkapi grid
+            const totalCells = firstDay + daysInMonth;
+            const remainder = totalCells % 7;
+            if (remainder !== 0) {
+                for (let i = 0; i < 7 - remainder; i++) {
+                    grid.innerHTML += `<div class="bg-slate-50 border-t border-transparent h-20 sm:h-[90px]"></div>`;
+                }
+            }
+        }
+
+        // Tampilkan list card khusus hari yang dipilih di bawah kalender
+        function renderSelectedDay() {
+            const container = document.getElementById('day-records-container');
+            const emptyState = document.getElementById('day-empty-state');
+            
+            // Set Header Text
+            const d = new Date(selectedDateStr);
+            const formattedDate = d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+            document.getElementById('selected-date-text').textContent = formattedDate;
+
+            const dayRecords = records.filter(r => r.date === selectedDateStr);
+
+            if (dayRecords.length === 0) {
                 container.innerHTML = '';
-                document.getElementById('empty-state').classList.remove('hidden');
+                emptyState.classList.remove('hidden');
+                emptyState.classList.add('flex');
             } else {
-                document.getElementById('empty-state').classList.add('hidden');
-                container.innerHTML = filtered.map(r => `
-                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md relative group">
-                        <div class="flex gap-4">
-                            <img src="${r.photo}" onclick="openModal(this.src)" class="w-16 h-16 rounded-lg object-cover cursor-pointer" />
-                            <div class="flex-1 min-w-0">
-                                <h3 class="font-bold text-slate-800 truncate">${r.name}</h3>
-                                <p class="text-xs text-slate-500 mt-1">${r.date} | Pukul ${r.time}</p>
-                                <span class="inline-block mt-2 px-2 py-0.5 rounded-full text-xs font-semibold ${r.status === 'Masuk' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'}">
-                                    ${r.status}
-                                </span>
+                emptyState.classList.add('hidden');
+                emptyState.classList.remove('flex');
+                
+                container.innerHTML = dayRecords.map(r => `
+                    <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm relative group flex items-start gap-3 hover:border-indigo-200 transition-colors">
+                        <img src="${r.photo}" onclick="openModal(this.src)" class="w-14 h-14 rounded-lg object-cover cursor-pointer hover:opacity-80 flex-shrink-0 bg-slate-100" />
+                        <div class="flex-1 min-w-0 pt-0.5">
+                            <h3 class="font-bold text-slate-800 text-sm truncate">${r.name}</h3>
+                            <div class="flex items-center gap-2 mt-1 text-xs text-slate-500">
+                                <span><i data-lucide="clock" class="w-3 h-3 inline pb-0.5"></i> ${r.time}</span>
+                                <span class="px-2 py-0.5 rounded-md font-semibold ${r.status === 'Masuk' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}">${r.status}</span>
                             </div>
                         </div>
-                        <button onclick="handleDelete(${r.id})" class="absolute top-2 right-2 p-1 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onclick="handleDelete(${r.id})" class="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md opacity-0 group-hover:opacity-100 transition-all" title="Hapus Lokal">
                             <i data-lucide="trash-2" class="w-4 h-4"></i>
                         </button>
                     </div>
@@ -542,11 +565,12 @@
             }
         }
 
+        // --- SUBMIT ABSEN ---
         document.getElementById('attendance-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const name = document.getElementById('input-name').value;
             const date = document.getElementById('input-date').value;
-            const time = document.getElementById('input-time').value; // Waktu format 24h
+            const time = document.getElementById('input-time').value; 
             const status = document.getElementById('input-status').value;
             const btn = e.target.querySelector('button[type="submit"]');
 
@@ -556,7 +580,6 @@
             const originalHtml = btn.innerHTML;
             btn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Menyimpan...';
             btn.disabled = true;
-            lucide.createIcons();
 
             try {
                 const params = new URLSearchParams();
@@ -567,20 +590,27 @@
                 params.append('photoBase64', currentPhotoData.split(',')[1]);
                 params.append('mimeType', 'image/jpeg');
 
-                // Mengirim ke Apps Script
                 await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
                     body: params
                 });
 
                 const newRec = { id: Date.now(), name, date, time, status, photo: currentPhotoData };
-                records.unshift(newRec);
+                records.unshift(newRec); // Simpan di atas
                 localStorage.setItem('absensi_records', JSON.stringify(records));
-                renderRecords();
                 
                 showNotification('Berhasil disimpan ke Google Sheet!', 'success');
                 
-                // Reset form inputs
+                // Pindah kalender ke tanggal yg baru diabsen
+                selectedDateStr = date;
+                const dateObj = new Date(date);
+                currentMonthDate.setMonth(dateObj.getMonth());
+                currentMonthDate.setFullYear(dateObj.getFullYear());
+                
+                renderCalendar();
+                renderSelectedDay();
+                
+                // Reset form
                 document.getElementById('input-name').value = '';
                 document.getElementById('input-status').value = 'Masuk';
                 removePhoto();
@@ -588,6 +618,10 @@
             } catch (err) {
                 console.error(err);
                 showNotification('Gagal terhubung ke server, data tetap disimpan di histori web.', 'error');
+                // Tetap render lokal jika gagal
+                selectedDateStr = date;
+                renderCalendar();
+                renderSelectedDay();
             } finally {
                 btn.innerHTML = originalHtml;
                 btn.disabled = false;
@@ -595,17 +629,38 @@
             }
         });
 
+        // --- EXPORT CSV (EXPORT BULAN YANG DILIHAT) ---
         window.exportToCSV = () => {
+            // Ambil tahun dan bulan dari kalender yang sedang aktif
+            const year = currentMonthDate.getFullYear();
+            const month = String(currentMonthDate.getMonth() + 1).padStart(2, '0');
+            const prefix = `${year}-${month}`; // misal: "2024-05"
+
+            // Filter rekap berdasarkan bulan di kalender
+            const monthRecords = records.filter(r => r.date.startsWith(prefix));
+
+            if (monthRecords.length === 0) {
+                showNotification('Tidak ada data pada bulan ini untuk diekspor.', 'error');
+                return;
+            }
+
             const rows = [["Nama Lengkap", "Tanggal", "Waktu", "Status"]];
-            records.forEach(r => rows.push([r.name, r.date, r.time, r.status]));
+            monthRecords.forEach(r => rows.push([r.name, r.date, r.time, r.status]));
             const csv = rows.map(r => r.join(',')).join('\n');
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `rekap_absensi_${new Date().toISOString().split('T')[0]}.csv`;
+            a.download = `rekap_absensi_${prefix}.csv`;
             a.click();
         };
+
+        // Inisialisasi awal
+        fetchNames();
+        setDateTimeDefaults();
+        renderCalendar();
+        renderSelectedDay();
+
     </script>
 </body>
 </html>
