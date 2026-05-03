@@ -429,7 +429,7 @@
             if (confirm('Hapus histori absen ini dari daftar lokal?')) {
                 records = records.filter(r => r.id !== id);
                 localStorage.setItem('absensi_records', JSON.stringify(records));
-                renderCalendar(); // Re-render kalender untuk hapus indikator foto jika kosong
+                renderCalendar(); 
                 renderSelectedDay();
             }
         };
@@ -466,42 +466,45 @@
 
             const todayStr = new Date().toISOString().split('T')[0];
 
-            // Render Kotak Kosong (Padding Awal Bulan)
             for (let i = 0; i < firstDay; i++) {
                 grid.innerHTML += `<div class="bg-slate-50 border-t border-transparent h-20 sm:h-[90px]"></div>`;
             }
 
-            // Render Tanggal
             for (let day = 1; day <= daysInMonth; day++) {
                 const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                 const isToday = dateStr === todayStr;
                 const isSelected = dateStr === selectedDateStr;
                 
-                // Cari apakah ada absen di hari ini
                 const dayRecords = records.filter(r => r.date === dateStr);
                 
+                // MENGGABUNGKAN indikator kalender berdasarkan nama
+                const groupedDayRecords = {};
+                dayRecords.forEach(r => {
+                    // Menyimpan data terbaru dari orang tersebut
+                    groupedDayRecords[r.name] = r; 
+                });
+                const uniqueDayRecords = Object.values(groupedDayRecords);
+                
                 let indicators = '';
-                if (dayRecords.length > 0) {
-                    // Maksimal tampilkan 3 avatar/dot
+                if (uniqueDayRecords.length > 0) {
                     const limit = 3;
-                    const showRecs = dayRecords.slice(0, limit);
+                    const showRecs = uniqueDayRecords.slice(0, limit);
                     
                     indicators += `<div class="flex -space-x-1.5 justify-center mt-1 sm:mt-1.5 w-full px-1">`;
                     showRecs.forEach(r => {
                         const ringColor = r.status === 'Masuk' ? 'ring-emerald-400' : 'ring-blue-400';
                         if(r.photo) {
-                             indicators += `<img src="${r.photo}" class="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover ring-2 ${ringColor} shadow-sm bg-white" />`;
+                             indicators += `<img src="${r.photo}" class="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover ring-2 ${ringColor} shadow-sm bg-white" title="${r.name}" />`;
                         } else {
-                             indicators += `<div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-slate-200 ring-2 ${ringColor}"></div>`;
+                             indicators += `<div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-slate-200 ring-2 ${ringColor}" title="${r.name}"></div>`;
                         }
                     });
-                    if (dayRecords.length > limit) {
-                        indicators += `<div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-slate-100 text-[9px] font-bold flex items-center justify-center ring-2 ring-slate-200 text-slate-600 z-10">+${dayRecords.length - limit}</div>`;
+                    if (uniqueDayRecords.length > limit) {
+                        indicators += `<div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-slate-100 text-[9px] font-bold flex items-center justify-center ring-2 ring-slate-200 text-slate-600 z-10">+${uniqueDayRecords.length - limit}</div>`;
                     }
                     indicators += `</div>`;
                 }
 
-                // Styling Khusus Hari Ini & Dipilih
                 let cellClass = `bg-white h-20 sm:h-[90px] p-1 flex flex-col items-center border-t-[3px] transition-all cursor-pointer hover:bg-indigo-50/60 `;
                 cellClass += isSelected ? 'border-t-indigo-500 bg-indigo-50 shadow-inner' : 'border-t-transparent';
                 
@@ -516,7 +519,6 @@
                 `;
             }
 
-            // Render Kotak Kosong (Padding Akhir Bulan) untuk melengkapi grid
             const totalCells = firstDay + daysInMonth;
             const remainder = totalCells % 7;
             if (remainder !== 0) {
@@ -526,12 +528,11 @@
             }
         }
 
-        // Tampilkan list card khusus hari yang dipilih di bawah kalender
+        // --- RENDER REKAP HARIAN (MENGGABUNGKAN NAMA YANG SAMA) ---
         function renderSelectedDay() {
             const container = document.getElementById('day-records-container');
             const emptyState = document.getElementById('day-empty-state');
             
-            // Set Header Text
             const d = new Date(selectedDateStr);
             const formattedDate = d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
             document.getElementById('selected-date-text').textContent = formattedDate;
@@ -546,21 +547,48 @@
                 emptyState.classList.add('hidden');
                 emptyState.classList.remove('flex');
                 
-                container.innerHTML = dayRecords.map(r => `
-                    <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm relative group flex items-start gap-3 hover:border-indigo-200 transition-colors">
-                        <img src="${r.photo}" onclick="openModal(this.src)" class="w-14 h-14 rounded-lg object-cover cursor-pointer hover:opacity-80 flex-shrink-0 bg-slate-100" />
-                        <div class="flex-1 min-w-0 pt-0.5">
-                            <h3 class="font-bold text-slate-800 text-sm truncate">${r.name}</h3>
-                            <div class="flex items-center gap-2 mt-1 text-xs text-slate-500">
-                                <span><i data-lucide="clock" class="w-3 h-3 inline pb-0.5"></i> ${r.time}</span>
+                // MENGELOMPOKKAN REKAP BERDASARKAN NAMA LENGKAP
+                const groupedRecords = {};
+                dayRecords.forEach(r => {
+                    if (!groupedRecords[r.name]) {
+                        groupedRecords[r.name] = [];
+                    }
+                    groupedRecords[r.name].push(r);
+                });
+                
+                container.innerHTML = Object.keys(groupedRecords).map(name => {
+                    const userRecs = groupedRecords[name];
+                    // Urutkan berdasarkan waktu agar rapi
+                    userRecs.sort((a, b) => a.time.localeCompare(b.time));
+                    // Ambil foto dari absen terakhir
+                    const latestPhoto = userRecs[userRecs.length - 1].photo;
+
+                    // Buat list status untuk pengguna tersebut
+                    const statusesHtml = userRecs.map(r => `
+                        <div class="flex items-center justify-between mt-1.5 group/item">
+                            <div class="flex items-center gap-2 text-xs text-slate-500">
                                 <span class="px-2 py-0.5 rounded-md font-semibold ${r.status === 'Masuk' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}">${r.status}</span>
+                                <span><i data-lucide="clock" class="w-3.5 h-3.5 inline pb-0.5"></i> Pukul ${r.time}</span>
+                            </div>
+                            <button onclick="handleDelete(${r.id})" class="p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md opacity-0 group-hover:opacity-100 transition-all" title="Hapus Status Ini">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    `).join('');
+
+                    return `
+                        <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm relative group flex items-start gap-3 hover:border-indigo-200 transition-colors">
+                            <img src="${latestPhoto}" onclick="openModal(this.src)" class="w-14 h-14 rounded-lg object-cover cursor-pointer hover:opacity-80 flex-shrink-0 bg-slate-100 mt-0.5" title="Lihat Foto Terakhir" />
+                            <div class="flex-1 min-w-0 pt-0.5">
+                                <h3 class="font-bold text-slate-800 text-sm truncate border-b border-slate-100 pb-1.5">${name}</h3>
+                                <div class="flex flex-col">
+                                    ${statusesHtml}
+                                </div>
                             </div>
                         </div>
-                        <button onclick="handleDelete(${r.id})" class="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md opacity-0 group-hover:opacity-100 transition-all" title="Hapus Lokal">
-                            <i data-lucide="trash-2" class="w-4 h-4"></i>
-                        </button>
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
+                
                 lucide.createIcons();
             }
         }
@@ -631,12 +659,10 @@
 
         // --- EXPORT CSV (EXPORT BULAN YANG DILIHAT) ---
         window.exportToCSV = () => {
-            // Ambil tahun dan bulan dari kalender yang sedang aktif
             const year = currentMonthDate.getFullYear();
             const month = String(currentMonthDate.getMonth() + 1).padStart(2, '0');
-            const prefix = `${year}-${month}`; // misal: "2024-05"
+            const prefix = `${year}-${month}`; 
 
-            // Filter rekap berdasarkan bulan di kalender
             const monthRecords = records.filter(r => r.date.startsWith(prefix));
 
             if (monthRecords.length === 0) {
