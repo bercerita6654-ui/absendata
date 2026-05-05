@@ -292,7 +292,7 @@
             }
         });
 
-        // --- MEMUAT DATA DARI SPREADSHEET (CLOUD) AGAR SINKRON DI SEMUA PC ---
+        // --- MEMUAT DATA DARI SPREADSHEET SECARA AMAN ---
         async function fetchCloudData() {
             try {
                 const btn = document.getElementById('btn-sync');
@@ -304,12 +304,33 @@
                 const cloudData = await response.json();
                 
                 if (Array.isArray(cloudData)) {
-                    // Simpan data lokal yang gagal terkirim (jika ada)
-                    const unsyncedRecords = records.filter(r => r.synced === false);
+                    // Ambil data dari local storage saat ini
+                    const localRecords = JSON.parse(localStorage.getItem('absensi_records')) || [];
+                    let mergedRecords = [...localRecords];
+
+                    // Gabungkan data dengan cerdas: Jangan menimpa data yang sudah ada di lokal
+                    cloudData.forEach(cloudRec => {
+                        // Cek apakah data ini sudah ada di memori lokal (berdasarkan Nama, Tanggal, dan Waktu)
+                        const isExist = mergedRecords.some(localRec => 
+                            localRec.name === cloudRec.name && 
+                            localRec.date === cloudRec.date && 
+                            localRec.time === cloudRec.time
+                        );
+
+                        // Jika data belum ada, masukkan ke dalam memori lokal
+                        if (!isExist) {
+                            mergedRecords.push(cloudRec);
+                        }
+                    });
+
+                    // Urutkan ulang berdasarkan tanggal dan waktu terbaru
+                    mergedRecords.sort((a, b) => {
+                        const dtA = new Date(`${a.date}T${a.time}`);
+                        const dtB = new Date(`${b.date}T${b.time}`);
+                        return dtB - dtA;
+                    });
                     
-                    // Gabungkan data: Unsynced lokal + Data asli dari cloud (Google Sheets)
-                    records = [...unsyncedRecords, ...cloudData];
-                    
+                    records = mergedRecords;
                     localStorage.setItem('absensi_records', JSON.stringify(records));
                     renderCalendar();
                     renderSelectedDay();
@@ -319,6 +340,9 @@
                 lucide.createIcons();
             } catch (error) {
                 console.error("Gagal load data dari Spreadsheet:", error);
+                const btn = document.getElementById('btn-sync');
+                btn.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4"></i><span class="hidden sm:inline">Update Data</span>';
+                lucide.createIcons();
             }
         }
 
