@@ -171,14 +171,26 @@
                             <button onclick="nextMonth()" class="p-1.5 rounded-md hover:bg-slate-100 text-slate-600 transition-colors"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
                         </div>
                         
-                        <!-- TOMBOL UPDATE DATA SINKRONISASI -->
-                        <button id="btn-sync" onclick="syncData()" class="flex items-center gap-1.5 text-sm px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium shadow-sm" title="Muat & Sinkronkan data ke Spreadsheet">
+                        <!-- TOMBOL UPDATE DATA SINKRONISASI (DISEMBUNYIKAN) -->
+                        <button id="btn-sync" onclick="syncData()" style="display: none;" class="flex items-center gap-1.5 text-sm px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium shadow-sm" title="Muat & Sinkronkan data ke Spreadsheet">
                             <i data-lucide="refresh-cw" class="w-4 h-4"></i><span class="hidden sm:inline">Update Data</span>
                         </button>
                         
                         <button onclick="exportToCSV()" class="flex items-center gap-1.5 text-sm px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors font-medium shadow-sm">
-                            <i data-lucide="download" class="w-4 h-4"></i><span class="hidden sm:inline">Export CSV</span>
+                            <i data-lucide="download" class="w-4 h-4"></i><span class="hidden xl:inline">Export CSV</span>
                         </button>
+                        
+                        <!-- TOMBOL BACKUP & RESTORE LOKAL -->
+                        <div class="flex items-center gap-1">
+                            <button onclick="backupLocalData()" class="flex items-center gap-1.5 text-sm px-3 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-colors font-medium shadow-sm" title="Download File Backup Lokal">
+                                <i data-lucide="save" class="w-4 h-4"></i><span class="hidden xl:inline">Backup</span>
+                            </button>
+                            <button onclick="document.getElementById('restore-file-input').click()" class="flex items-center gap-1.5 text-sm px-3 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-colors font-medium shadow-sm" title="Upload File Backup Lokal">
+                                <i data-lucide="folder-up" class="w-4 h-4"></i><span class="hidden xl:inline">Restore</span>
+                            </button>
+                            <!-- Hidden File Input untuk Restore -->
+                            <input type="file" id="restore-file-input" accept=".json" class="hidden" onchange="restoreLocalData(event)" />
+                        </div>
                     </div>
                 </div>
 
@@ -1005,6 +1017,65 @@
             a.href = url;
             a.download = `rekap_absensi_${prefix}.csv`;
             a.click();
+        };
+
+        // --- BACKUP DATA LOKAL ---
+        window.backupLocalData = () => {
+            if (records.length === 0) {
+                showNotification('Tidak ada data untuk dibackup.', 'error');
+                return;
+            }
+            const dataStr = JSON.stringify(records, null, 2);
+            const blob = new Blob([dataStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `backup_absensi_lokal_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            showNotification('Backup lokal berhasil diunduh.', 'success');
+        };
+
+        // --- RESTORE DATA LOKAL ---
+        window.restoreLocalData = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const importedData = JSON.parse(event.target.result);
+                    if (!Array.isArray(importedData)) throw new Error("Format JSON tidak valid");
+
+                    // Gabungkan data impor dengan data lokal (hindari duplikat id)
+                    const existingIds = new Set(records.map(r => r.id));
+                    let addedCount = 0;
+                    
+                    importedData.forEach(item => {
+                        if (item.id && !existingIds.has(item.id)) {
+                            records.push(item);
+                            existingIds.add(item.id);
+                            addedCount++;
+                        }
+                    });
+
+                    // Urutkan ulang data terbaru di atas
+                    records.sort((a, b) => {
+                        const dtA = new Date(`${a.date}T${a.time}`);
+                        const dtB = new Date(`${b.date}T${b.time}`);
+                        return dtB - dtA;
+                    });
+
+                    localStorage.setItem('absensi_records', JSON.stringify(records));
+                    renderCalendar();
+                    renderSelectedDay();
+                    showNotification(`Restore selesai! ${addedCount} riwayat ditambahkan.`, 'success');
+                } catch (err) {
+                    console.error(err);
+                    showNotification('Gagal membaca file backup. Pastikan itu file JSON yang valid.', 'error');
+                }
+                e.target.value = ''; // Reset input agar bisa dipakai lagi
+            };
+            reader.readAsText(file);
         };
 
         // Inisialisasi awal
