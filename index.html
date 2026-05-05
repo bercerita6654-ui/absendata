@@ -483,28 +483,25 @@
                 
                 const dayRecords = records.filter(r => r.date === dateStr);
                 
-                const groupedDayRecords = {};
-                dayRecords.forEach(r => {
-                    groupedDayRecords[r.name] = r; 
-                });
-                const uniqueDayRecords = Object.values(groupedDayRecords);
+                // Urutkan waktu agar berurutan (Masuk dulu, lalu Pulang)
+                dayRecords.sort((a, b) => a.time.localeCompare(b.time));
                 
                 let indicators = '';
-                if (uniqueDayRecords.length > 0) {
-                    const limit = 3;
-                    const showRecs = uniqueDayRecords.slice(0, limit);
+                if (dayRecords.length > 0) {
+                    const limit = 4; // Tingkatkan limit agar muat lebih banyak foto
+                    const showRecs = dayRecords.slice(0, limit);
                     
                     indicators += `<div class="flex -space-x-1.5 justify-center mt-1 sm:mt-1.5 w-full px-1">`;
                     showRecs.forEach(r => {
                         const ringColor = r.status === 'Masuk' ? 'ring-emerald-400' : 'ring-blue-400';
                         if(r.photo) {
-                             indicators += `<img src="${r.photo}" class="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover ring-2 ${ringColor} shadow-sm bg-white" title="${r.name}" />`;
+                             indicators += `<img src="${r.photo}" class="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover ring-2 ${ringColor} shadow-sm bg-white" title="${r.name} (${r.status})" />`;
                         } else {
-                             indicators += `<div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-slate-200 ring-2 ${ringColor}" title="${r.name}"></div>`;
+                             indicators += `<div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-slate-200 ring-2 ${ringColor}" title="${r.name} (${r.status})"></div>`;
                         }
                     });
-                    if (uniqueDayRecords.length > limit) {
-                        indicators += `<div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-slate-100 text-[9px] font-bold flex items-center justify-center ring-2 ring-slate-200 text-slate-600 z-10">+${uniqueDayRecords.length - limit}</div>`;
+                    if (dayRecords.length > limit) {
+                        indicators += `<div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-slate-100 text-[9px] font-bold flex items-center justify-center ring-2 ring-slate-200 text-slate-600 z-10">+${dayRecords.length - limit}</div>`;
                     }
                     indicators += `</div>`;
                 }
@@ -562,34 +559,36 @@
                 container.innerHTML = Object.keys(groupedRecords).map(name => {
                     const userRecs = groupedRecords[name];
                     userRecs.sort((a, b) => a.time.localeCompare(b.time));
-                    const latestPhoto = userRecs[userRecs.length - 1].photo;
 
                     const statusesHtml = userRecs.map(r => {
-                        // Icon Sinkronisasi (Centang Hijau jika sudah tersinkron, Peringatan Merah jika belum)
                         const syncIcon = r.synced === false 
                             ? '<i data-lucide="wifi-off" class="w-3.5 h-3.5 inline text-red-400 ml-1" title="Belum di-update ke Spreadsheet"></i>' 
                             : '<i data-lucide="check-circle-2" class="w-3.5 h-3.5 inline text-emerald-500 ml-1" title="Tersimpan di Spreadsheet"></i>';
 
                         return `
-                        <div class="flex items-center justify-between mt-1.5 group/item">
-                            <div class="flex items-center gap-2 text-xs text-slate-500">
-                                <span class="px-2 py-0.5 rounded-md font-semibold ${r.status === 'Masuk' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}">${r.status}</span>
-                                <span><i data-lucide="clock" class="w-3.5 h-3.5 inline pb-0.5"></i> Pukul ${r.time} ${syncIcon}</span>
+                        <div class="flex items-center justify-between mt-2 group/item p-2 rounded-lg bg-slate-50 border border-slate-100">
+                            <div class="flex items-center gap-3">
+                                <img src="${r.photo}" onclick="openModal(this.src)" class="w-10 h-10 rounded-lg object-cover cursor-pointer hover:opacity-80 bg-slate-200 border border-slate-200" title="Foto ${r.status}" />
+                                <div class="flex flex-col">
+                                    <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">${r.status}</span>
+                                    <div class="flex items-center gap-1 text-xs font-medium text-slate-700">
+                                        <i data-lucide="clock" class="w-3.5 h-3.5 text-indigo-500"></i> ${r.time} ${syncIcon}
+                                    </div>
+                                </div>
                             </div>
-                            <button onclick="handleDelete(${r.id})" class="p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md opacity-0 group-hover:opacity-100 transition-all" title="Hapus Status Ini">
-                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            <button onclick="handleDelete(${r.id})" class="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md opacity-0 group-hover:opacity-100 transition-all" title="Hapus Status Ini">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
                             </button>
                         </div>
                     `}).join('');
 
                     return `
-                        <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm relative group flex items-start gap-3 hover:border-indigo-200 transition-colors">
-                            <img src="${latestPhoto}" onclick="openModal(this.src)" class="w-14 h-14 rounded-lg object-cover cursor-pointer hover:opacity-80 flex-shrink-0 bg-slate-100 mt-0.5" title="Lihat Foto Terakhir" />
-                            <div class="flex-1 min-w-0 pt-0.5">
-                                <h3 class="font-bold text-slate-800 text-sm truncate border-b border-slate-100 pb-1.5">${name}</h3>
-                                <div class="flex flex-col">
-                                    ${statusesHtml}
-                                </div>
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative group flex flex-col gap-2 hover:border-indigo-200 transition-colors">
+                            <h3 class="font-bold text-slate-800 text-sm truncate flex items-center gap-2 border-b border-slate-100 pb-2">
+                                <i data-lucide="user" class="w-4 h-4 text-slate-400"></i> ${name}
+                            </h3>
+                            <div class="flex flex-col gap-1 w-full">
+                                ${statusesHtml}
                             </div>
                         </div>
                     `;
@@ -624,12 +623,13 @@
                 params.append('photoBase64', currentPhotoData.split(',')[1]);
                 params.append('mimeType', 'image/jpeg');
 
+                // DITAMBAHKAN mode: 'no-cors' AGAR TIDAK DIBLOKIR BROWSER
                 await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
+                    mode: 'no-cors',
                     body: params
                 });
 
-                // Jika fetch berhasil, tandai `synced: true`
                 const newRec = { id: Date.now(), name, date, time, status, photo: currentPhotoData, synced: true };
                 records.unshift(newRec); 
                 localStorage.setItem('absensi_records', JSON.stringify(records));
@@ -651,7 +651,6 @@
             } catch (err) {
                 console.error(err);
                 
-                // Jika fetch gagal (karena offline dsb), tandai `synced: false`
                 const newRec = { id: Date.now(), name, date, time, status, photo: currentPhotoData, synced: false };
                 records.unshift(newRec); 
                 localStorage.setItem('absensi_records', JSON.stringify(records));
@@ -694,7 +693,6 @@
 
             let successCount = 0;
             
-            // Loop dan kirim semua data yang gagal terkirim sebelumnya
             for (let i = 0; i < unsyncedRecords.length; i++) {
                 const rec = unsyncedRecords[i];
                 try {
@@ -706,12 +704,13 @@
                     params.append('photoBase64', rec.photo ? rec.photo.split(',')[1] : '');
                     params.append('mimeType', 'image/jpeg');
 
+                    // DITAMBAHKAN mode: 'no-cors' 
                     await fetch(APPS_SCRIPT_URL, {
                         method: 'POST',
+                        mode: 'no-cors',
                         body: params
                     });
 
-                    // Jika sukses, ubah status menjadi true
                     const index = records.findIndex(r => r.id === rec.id);
                     if (index !== -1) {
                         records[index].synced = true;
@@ -722,7 +721,6 @@
                 }
             }
 
-            // Simpan perubahan dan perbarui UI
             localStorage.setItem('absensi_records', JSON.stringify(records));
             renderSelectedDay();
 
