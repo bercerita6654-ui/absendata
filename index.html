@@ -171,6 +171,7 @@
                             <button onclick="nextMonth()" class="p-1.5 rounded-md hover:bg-slate-100 text-slate-600 transition-colors"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
                         </div>
                         
+                        <!-- TOMBOL UPDATE DATA SINKRONISASI -->
                         <button id="btn-sync" onclick="syncData()" class="flex items-center gap-1.5 text-sm px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium shadow-sm" title="Muat & Sinkronkan data ke Spreadsheet">
                             <i data-lucide="refresh-cw" class="w-4 h-4"></i><span class="hidden sm:inline">Update Data</span>
                         </button>
@@ -220,7 +221,7 @@
         let records = JSON.parse(localStorage.getItem('absensi_records')) || [];
         let currentPhotoData = null;
         
-        let editingId = null; // Menyimpan ID data yang sedang diedit
+        let editingId = null; 
 
         // --- CALENDAR STATE ---
         let currentMonthDate = new Date();
@@ -295,54 +296,60 @@
             }
         });
 
-        // --- MEMUAT DATA DARI SPREADSHEET ---
+        // --- MEMUAT DATA DARI SPREADSHEET SECARA AMAN ---
         async function fetchCloudData() {
             try {
                 const btn = document.getElementById('btn-sync');
                 const originalHtml = btn.innerHTML;
-                btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span class="hidden sm:inline">Memuat...</span>';
+                btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span class="hidden sm:inline">Memuat Data...</span>';
                 lucide.createIcons();
 
-                const response = await fetch(APPS_SCRIPT_URL);
-                const cloudData = await response.json();
+                const response = await fetch(APPS_SCRIPT_URL + '?t=' + new Date().getTime());
+                const responseText = await response.text();
                 
-                if (Array.isArray(cloudData)) {
-                    const localRecords = JSON.parse(localStorage.getItem('absensi_records')) || [];
-                    let mergedRecords = [...localRecords];
+                try {
+                    const cloudData = JSON.parse(responseText);
+                    if (Array.isArray(cloudData)) {
+                        const localRecords = JSON.parse(localStorage.getItem('absensi_records')) || [];
+                        let mergedRecords = [...localRecords];
 
-                    cloudData.forEach(cloudRec => {
-                        const isExist = mergedRecords.some(localRec => 
-                            localRec.name === cloudRec.name && 
-                            localRec.date === cloudRec.date && 
-                            localRec.time === cloudRec.time
-                        );
-
-                        if (!isExist) {
-                            mergedRecords.push(cloudRec);
-                        } else {
-                            // Update data lokal jika dari cloud ada (termasuk update foto link)
-                            const idx = mergedRecords.findIndex(localRec => 
-                                localRec.name === cloudRec.name && localRec.date === cloudRec.date && localRec.time === cloudRec.time
+                        cloudData.forEach(cloudRec => {
+                            const isExist = mergedRecords.some(localRec => 
+                                localRec.name === cloudRec.name && 
+                                localRec.date === cloudRec.date && 
+                                localRec.time === cloudRec.time
                             );
-                            mergedRecords[idx] = cloudRec;
-                        }
-                    });
 
-                    mergedRecords.sort((a, b) => {
-                        const dtA = new Date(`${a.date}T${a.time}`);
-                        const dtB = new Date(`${b.date}T${b.time}`);
-                        return dtB - dtA;
-                    });
-                    
-                    records = mergedRecords;
-                    localStorage.setItem('absensi_records', JSON.stringify(records));
-                    renderCalendar();
-                    renderSelectedDay();
+                            if (!isExist) {
+                                mergedRecords.push(cloudRec);
+                            } else {
+                                const idx = mergedRecords.findIndex(localRec => 
+                                    localRec.name === cloudRec.name && localRec.date === cloudRec.date && localRec.time === cloudRec.time
+                                );
+                                mergedRecords[idx] = cloudRec;
+                            }
+                        });
+
+                        mergedRecords.sort((a, b) => {
+                            const dtA = new Date(`${a.date}T${a.time}`);
+                            const dtB = new Date(`${b.date}T${b.time}`);
+                            return dtB - dtA;
+                        });
+                        
+                        records = mergedRecords;
+                        localStorage.setItem('absensi_records', JSON.stringify(records));
+                        renderCalendar();
+                        renderSelectedDay();
+                    }
+                } catch(e) {
+                    console.error("Gagal membaca respons dari Google Script:", responseText);
+                    showNotification('Tampilan cloud gagal dimuat. Pastikan Apps Script sudah disetting "Anyone".', 'error');
                 }
                 
                 btn.innerHTML = originalHtml;
                 lucide.createIcons();
             } catch (error) {
+                console.error("Gagal load data:", error);
                 const btn = document.getElementById('btn-sync');
                 btn.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4"></i><span class="hidden sm:inline">Update Data</span>';
                 lucide.createIcons();
@@ -488,7 +495,7 @@
                     img.onload = () => {
                         const canvas = document.createElement('canvas');
                         const ctx = canvas.getContext('2d');
-                        // KITA KECILKAN UKURAN GAMBAR AGAR TIDAK GAGAL UPLOAD
+                        // KITA KECILKAN UKURAN GAMBAR LEBIH KECIL LAGI AGAR MULUS 100%
                         const MAX_WIDTH = 400; 
                         let width = img.width;
                         let height = img.height;
@@ -499,7 +506,6 @@
                         canvas.width = width;
                         canvas.height = height;
                         ctx.drawImage(img, 0, 0, width, height);
-                        // Kualitas diturunkan sedikit (0.5) agar sangat ringan dikirim ke Server Google
                         currentPhotoData = canvas.toDataURL('image/jpeg', 0.5); 
                         document.getElementById('preview-img').src = currentPhotoData;
                         document.getElementById('photo-placeholder').classList.add('hidden');
@@ -533,10 +539,8 @@
 
             editingId = id;
             
-            // Set Form Data
             document.getElementById('input-name').value = rec.name;
             
-            // Cek status option apakah ada, jika tdk ada tambahkan
             const statusSelect = document.getElementById('input-status');
             if (!Array.from(statusSelect.options).some(opt => opt.value === rec.status)) {
                 const opt = document.createElement('option');
@@ -552,13 +556,11 @@
             document.getElementById('input-time-hour').value = h;
             document.getElementById('input-time-minute').value = m;
 
-            // Set Photo
             currentPhotoData = rec.photo;
             document.getElementById('preview-img').src = currentPhotoData;
             document.getElementById('photo-placeholder').classList.add('hidden');
             document.getElementById('photo-preview').classList.remove('hidden');
 
-            // Ubah Tampilan UI
             document.getElementById('form-title').innerHTML = '<i data-lucide="edit" class="w-5 h-5 text-amber-500"></i> Edit Absensi';
             const btn = document.getElementById('submit-btn');
             btn.innerHTML = '<i data-lucide="save" class="w-5 h-5"></i> <span>Update Absen</span>';
@@ -568,8 +570,6 @@
             document.getElementById('cancel-edit-btn').classList.add('flex');
             
             lucide.createIcons();
-            
-            // Scroll ke form
             document.getElementById('form-container').scrollIntoView({ behavior: 'smooth' });
         };
 
@@ -633,7 +633,6 @@
                 const isSelected = dateStr === selectedDateStr;
                 
                 const dayRecords = records.filter(r => r.date === dateStr);
-                
                 dayRecords.sort((a, b) => a.time.localeCompare(b.time));
                 
                 let indicators = '';
@@ -754,7 +753,7 @@
             }
         }
 
-        // --- SUBMIT ABSEN (INSERT & UPDATE) ---
+        // --- SUBMIT ABSEN ---
         document.getElementById('attendance-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const name = document.getElementById('input-name').value;
@@ -774,38 +773,49 @@
             btn.disabled = true;
 
             try {
-                const formParams = new FormData();
-                formParams.append('nama', name);
-                formParams.append('tanggal', date);
-                formParams.append('waktu', time);
-                formParams.append('status', status);
+                // DIUBAH MENJADI URLSearchParams YANG LEBIH KUAT DARI FORM DATA UNTUK APPS SCRIPT
+                const params = new URLSearchParams();
+                params.append('nama', name);
+                params.append('tanggal', date);
+                params.append('waktu', time);
+                params.append('status', status);
                 
-                // Jika sedang Mode Edit
                 if (editingId) {
                     const oldRec = records.find(r => r.id === editingId);
-                    formParams.append('action', 'update');
-                    formParams.append('old_nama', oldRec.name);
-                    formParams.append('old_tanggal', oldRec.date);
-                    formParams.append('old_status', oldRec.status);
+                    params.append('action', 'update');
+                    params.append('old_nama', oldRec.name);
+                    params.append('old_tanggal', oldRec.date);
+                    params.append('old_status', oldRec.status);
 
-                    // Jika foto berbentuk link (http) berarti tidak perlu diupload lagi base64-nya
                     if (currentPhotoData.startsWith('http')) {
-                        formParams.append('existingPhotoUrl', currentPhotoData);
+                        params.append('existingPhotoUrl', currentPhotoData);
                     } else {
-                        formParams.append('photoBase64', currentPhotoData.split(',')[1]);
-                        formParams.append('mimeType', 'image/jpeg');
+                        params.append('photoBase64', currentPhotoData.split(',')[1]);
+                        params.append('mimeType', 'image/jpeg');
                     }
                 } else {
-                    formParams.append('action', 'insert');
-                    formParams.append('photoBase64', currentPhotoData.split(',')[1]);
-                    formParams.append('mimeType', 'image/jpeg');
+                    params.append('action', 'insert');
+                    params.append('photoBase64', currentPhotoData.split(',')[1]);
+                    params.append('mimeType', 'image/jpeg');
                 }
 
-                await fetch(APPS_SCRIPT_URL, {
+                const response = await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
-                    mode: 'no-cors',
-                    body: formParams
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: params.toString()
                 });
+                
+                const responseText = await response.text();
+                let result = {};
+                try {
+                    result = JSON.parse(responseText);
+                } catch(e) {
+                    throw new Error("Izin Apps Script gagal atau URL salah.");
+                }
+
+                if(result.result === 'error') {
+                    throw new Error(result.error);
+                }
 
                 // Update UI Lokal
                 if (editingId) {
@@ -837,11 +847,11 @@
                 if (editingId) {
                     const idx = records.findIndex(r => r.id === editingId);
                     if(idx !== -1) records[idx] = { ...records[idx], name, date, time, status, photo: currentPhotoData, synced: false };
-                    showNotification('Data diupdate lokal. Klik "Update Data" saat sinyal stabil.', 'error');
+                    showNotification('Gagal izin Apps Script. Data disimpan lokal.', 'error');
                 } else {
                     const newRec = { id: Date.now(), name, date, time, status, photo: currentPhotoData, synced: false };
                     records.unshift(newRec); 
-                    showNotification('Data disimpan lokal. Klik "Update Data" saat sinyal stabil.', 'error');
+                    showNotification('Gagal izin Apps Script. Data disimpan lokal.', 'error');
                 }
                 
                 localStorage.setItem('absensi_records', JSON.stringify(records));
@@ -872,31 +882,36 @@
             for (let i = 0; i < unsyncedRecords.length; i++) {
                 const rec = unsyncedRecords[i];
                 try {
-                    const formParams = new FormData();
-                    formParams.append('action', 'insert');
-                    formParams.append('nama', rec.name);
-                    formParams.append('tanggal', rec.date);
-                    formParams.append('waktu', rec.time);
-                    formParams.append('status', rec.status);
+                    const params = new URLSearchParams();
+                    params.append('action', 'insert');
+                    params.append('nama', rec.name);
+                    params.append('tanggal', rec.date);
+                    params.append('waktu', rec.time);
+                    params.append('status', rec.status);
                     
                     if (rec.photo && rec.photo.startsWith('http')) {
-                        formParams.append('existingPhotoUrl', rec.photo);
+                        params.append('existingPhotoUrl', rec.photo);
                     } else {
-                        formParams.append('photoBase64', rec.photo ? rec.photo.split(',')[1] : '');
-                        formParams.append('mimeType', 'image/jpeg');
+                        params.append('photoBase64', rec.photo ? rec.photo.split(',')[1] : '');
+                        params.append('mimeType', 'image/jpeg');
                     }
 
-                    await fetch(APPS_SCRIPT_URL, {
+                    const response = await fetch(APPS_SCRIPT_URL, {
                         method: 'POST',
-                        mode: 'no-cors',
-                        body: formParams
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: params.toString()
                     });
+                    
+                    const responseText = await response.text();
+                    const result = JSON.parse(responseText);
 
-                    const index = records.findIndex(r => r.id === rec.id);
-                    if (index !== -1) {
-                        records[index].synced = true;
+                    if (result.result !== 'error') {
+                        const index = records.findIndex(r => r.id === rec.id);
+                        if (index !== -1) {
+                            records[index].synced = true;
+                        }
+                        successCount++;
                     }
-                    successCount++;
                 } catch (err) {
                     console.error('Gagal mensinkronkan data:', rec.name, err);
                 }
@@ -911,7 +926,7 @@
             if (successCount > 0) {
                 showNotification(`${successCount} data berhasil diupdate ke Spreadsheet!`, 'success');
             } else {
-                showNotification('Data sudah ter-update & tersinkronisasi.', 'success');
+                showNotification('Memuat dari cloud selesai.', 'success');
             }
         };
 
