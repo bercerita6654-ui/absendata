@@ -69,15 +69,16 @@
     <main class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         <!-- KOLOM KIRI: FORM INPUT -->
-        <div class="lg:col-span-1">
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-                <h2 class="text-xl font-bold text-slate-800 mb-6 border-b pb-4 flex items-center gap-2">
+        <div class="lg:col-span-1" id="form-container">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 relative">
+                
+                <h2 class="text-xl font-bold text-slate-800 mb-6 border-b pb-4 flex items-center gap-2" id="form-title">
                     <i data-lucide="user-plus" class="w-5 h-5 text-indigo-500"></i>
                     Isi Absensi
                 </h2>
 
                 <form id="attendance-form" class="space-y-5">
-                    <!-- Input Nama (Dropdown dengan opsi Kelola) -->
+                    <!-- Input Nama -->
                     <div>
                         <div class="flex justify-between items-center mb-1">
                             <label class="block text-sm font-semibold text-slate-700">Nama Lengkap</label>
@@ -99,7 +100,7 @@
                         </select>
                     </div>
 
-                    <!-- Input Tanggal & Waktu (Custom 24-jam) -->
+                    <!-- Input Tanggal & Waktu -->
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-semibold text-slate-700 mb-1">Tanggal</label>
@@ -142,8 +143,12 @@
                         <input type="file" id="file-input" accept="image/*" capture="environment" class="hidden" onchange="handlePhotoUpload(event)" />
                     </div>
 
-                    <button type="submit" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-sm hover:shadow transition-all flex items-center justify-center gap-2">
-                        <i data-lucide="check-circle" class="w-5 h-5"></i> Simpan Absen
+                    <button type="submit" id="submit-btn" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-sm hover:shadow transition-all flex items-center justify-center gap-2">
+                        <i data-lucide="check-circle" class="w-5 h-5"></i> <span>Simpan Absen</span>
+                    </button>
+                    
+                    <button type="button" id="cancel-edit-btn" onclick="cancelEdit()" class="hidden w-full py-2.5 mt-2 text-slate-500 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 font-bold rounded-xl transition-all items-center justify-center gap-2">
+                        <i data-lucide="x" class="w-4 h-4"></i> Batal Edit
                     </button>
                 </form>
             </div>
@@ -166,7 +171,6 @@
                             <button onclick="nextMonth()" class="p-1.5 rounded-md hover:bg-slate-100 text-slate-600 transition-colors"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
                         </div>
                         
-                        <!-- TOMBOL UPDATE DATA SINKRONISASI -->
                         <button id="btn-sync" onclick="syncData()" class="flex items-center gap-1.5 text-sm px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium shadow-sm" title="Muat & Sinkronkan data ke Spreadsheet">
                             <i data-lucide="refresh-cw" class="w-4 h-4"></i><span class="hidden sm:inline">Update Data</span>
                         </button>
@@ -183,7 +187,6 @@
                         <div>Min</div><div>Sen</div><div>Sel</div><div>Rab</div><div>Kam</div><div>Jum</div><div>Sab</div>
                     </div>
                     <div id="calendar-grid" class="grid grid-cols-7 bg-slate-200 gap-px">
-                        <!-- Sel kalender akan di-render di sini -->
                     </div>
                 </div>
 
@@ -195,7 +198,6 @@
                     </h3>
                     
                     <div id="day-records-container" class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <!-- Data Card harian -->
                     </div>
                     
                     <div id="day-empty-state" class="hidden flex-col items-center justify-center text-slate-400 py-8">
@@ -212,12 +214,14 @@
         lucide.createIcons();
 
         // --- URL WEB APP GOOGLE APPS SCRIPT ---
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbys8VukdBSnI3J9pQVXYTTLlYe_N4FySM89iW5ReoypdRS8FjQrxhwqMthOdi2puntYbg/exec';
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw3DDEcoST4zXOYA_8Xpmn37N_A_aHsUwTXxlDTGUVNwGX17JAMfM8g-zfSAoQhIQp-JA/exec';
         const NAMES_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8ACyi03DJ77mANO19x_hJV82Xs8rNBBLyT9IIGc1tgYGNrv9WMufjm940iEPx4QU6Eta6T8Ekv2-X/pub?gid=219192679&single=true&output=csv';
 
         let records = JSON.parse(localStorage.getItem('absensi_records')) || [];
         let currentPhotoData = null;
         
+        let editingId = null; // Menyimpan ID data yang sedang diedit
+
         // --- CALENDAR STATE ---
         let currentMonthDate = new Date();
         currentMonthDate.setDate(1);
@@ -249,7 +253,6 @@
                 });
                 updateNameDropdown();
             } catch (error) {
-                console.error("Gagal load CSV nama:", error);
                 updateNameDropdown(); 
             }
         }
@@ -276,7 +279,7 @@
         document.getElementById('input-name').addEventListener('change', (e) => {
             const selectedName = e.target.value;
             const statusSelect = document.getElementById('input-status');
-            if (selectedName && nameDataMap[selectedName]) {
+            if (selectedName && nameDataMap[selectedName] && !editingId) {
                 const newStatus = nameDataMap[selectedName];
                 let optionExists = Array.from(statusSelect.options).some(opt => opt.value.toLowerCase() === newStatus.toLowerCase());
                 if (!optionExists && newStatus !== '') {
@@ -292,38 +295,39 @@
             }
         });
 
-        // --- MEMUAT DATA DARI SPREADSHEET SECARA AMAN ---
+        // --- MEMUAT DATA DARI SPREADSHEET ---
         async function fetchCloudData() {
             try {
                 const btn = document.getElementById('btn-sync');
                 const originalHtml = btn.innerHTML;
-                btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span class="hidden sm:inline">Memuat Data...</span>';
+                btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span class="hidden sm:inline">Memuat...</span>';
                 lucide.createIcons();
 
                 const response = await fetch(APPS_SCRIPT_URL);
                 const cloudData = await response.json();
                 
                 if (Array.isArray(cloudData)) {
-                    // Ambil data dari local storage saat ini
                     const localRecords = JSON.parse(localStorage.getItem('absensi_records')) || [];
                     let mergedRecords = [...localRecords];
 
-                    // Gabungkan data dengan cerdas: Jangan menimpa data yang sudah ada di lokal
                     cloudData.forEach(cloudRec => {
-                        // Cek apakah data ini sudah ada di memori lokal (berdasarkan Nama, Tanggal, dan Waktu)
                         const isExist = mergedRecords.some(localRec => 
                             localRec.name === cloudRec.name && 
                             localRec.date === cloudRec.date && 
                             localRec.time === cloudRec.time
                         );
 
-                        // Jika data belum ada, masukkan ke dalam memori lokal
                         if (!isExist) {
                             mergedRecords.push(cloudRec);
+                        } else {
+                            // Update data lokal jika dari cloud ada (termasuk update foto link)
+                            const idx = mergedRecords.findIndex(localRec => 
+                                localRec.name === cloudRec.name && localRec.date === cloudRec.date && localRec.time === cloudRec.time
+                            );
+                            mergedRecords[idx] = cloudRec;
                         }
                     });
 
-                    // Urutkan ulang berdasarkan tanggal dan waktu terbaru
                     mergedRecords.sort((a, b) => {
                         const dtA = new Date(`${a.date}T${a.time}`);
                         const dtB = new Date(`${b.date}T${b.time}`);
@@ -339,14 +343,13 @@
                 btn.innerHTML = originalHtml;
                 lucide.createIcons();
             } catch (error) {
-                console.error("Gagal load data dari Spreadsheet:", error);
                 const btn = document.getElementById('btn-sync');
                 btn.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4"></i><span class="hidden sm:inline">Update Data</span>';
                 lucide.createIcons();
             }
         }
 
-        // --- MODAL NAMA ---
+        // --- MODAL NAMA LENGKAP ---
         window.openManageNamesModal = () => {
             document.getElementById('manage-names-modal').classList.remove('hidden');
             document.getElementById('manage-names-modal').classList.add('flex');
@@ -431,7 +434,6 @@
             }, 3500);
         }
 
-        // Inisialisasi Pilihan Waktu Kustom (24 Jam)
         function initTimeDropdowns() {
             const hourSelect = document.getElementById('input-time-hour');
             const minuteSelect = document.getElementById('input-time-minute');
@@ -455,7 +457,6 @@
             const dd = String(now.getDate()).padStart(2, '0');
             document.getElementById('input-date').value = `${yyyy}-${mm}-${dd}`;
             
-            // Set Waktu di Dropdown
             const hours24 = String(now.getHours()).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
             document.getElementById('input-time-hour').value = hours24;
@@ -487,7 +488,8 @@
                     img.onload = () => {
                         const canvas = document.createElement('canvas');
                         const ctx = canvas.getContext('2d');
-                        const MAX_WIDTH = 800;
+                        // KITA KECILKAN UKURAN GAMBAR AGAR TIDAK GAGAL UPLOAD
+                        const MAX_WIDTH = 400; 
                         let width = img.width;
                         let height = img.height;
                         if (width > MAX_WIDTH) {
@@ -497,7 +499,8 @@
                         canvas.width = width;
                         canvas.height = height;
                         ctx.drawImage(img, 0, 0, width, height);
-                        currentPhotoData = canvas.toDataURL('image/jpeg', 0.6);
+                        // Kualitas diturunkan sedikit (0.5) agar sangat ringan dikirim ke Server Google
+                        currentPhotoData = canvas.toDataURL('image/jpeg', 0.5); 
                         document.getElementById('preview-img').src = currentPhotoData;
                         document.getElementById('photo-placeholder').classList.add('hidden');
                         document.getElementById('photo-preview').classList.remove('hidden');
@@ -515,12 +518,77 @@
         };
 
         window.handleDelete = (id) => {
-            if (confirm('Hapus histori absen ini dari daftar lokal?')) {
+            if (confirm('Hapus histori absen ini dari daftar lokal? (Data di spreadsheet harus dihapus manual)')) {
                 records = records.filter(r => r.id !== id);
                 localStorage.setItem('absensi_records', JSON.stringify(records));
                 renderCalendar(); 
                 renderSelectedDay();
             }
+        };
+
+        // --- FITUR EDIT ---
+        window.editRecord = (id) => {
+            const rec = records.find(r => r.id === id);
+            if (!rec) return;
+
+            editingId = id;
+            
+            // Set Form Data
+            document.getElementById('input-name').value = rec.name;
+            
+            // Cek status option apakah ada, jika tdk ada tambahkan
+            const statusSelect = document.getElementById('input-status');
+            if (!Array.from(statusSelect.options).some(opt => opt.value === rec.status)) {
+                const opt = document.createElement('option');
+                opt.value = rec.status;
+                opt.textContent = rec.status;
+                statusSelect.appendChild(opt);
+            }
+            statusSelect.value = rec.status;
+            
+            document.getElementById('input-date').value = rec.date;
+            
+            const [h, m] = rec.time.split(':');
+            document.getElementById('input-time-hour').value = h;
+            document.getElementById('input-time-minute').value = m;
+
+            // Set Photo
+            currentPhotoData = rec.photo;
+            document.getElementById('preview-img').src = currentPhotoData;
+            document.getElementById('photo-placeholder').classList.add('hidden');
+            document.getElementById('photo-preview').classList.remove('hidden');
+
+            // Ubah Tampilan UI
+            document.getElementById('form-title').innerHTML = '<i data-lucide="edit" class="w-5 h-5 text-amber-500"></i> Edit Absensi';
+            const btn = document.getElementById('submit-btn');
+            btn.innerHTML = '<i data-lucide="save" class="w-5 h-5"></i> <span>Update Absen</span>';
+            btn.className = "w-full py-3 px-4 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl shadow-sm hover:shadow transition-all flex items-center justify-center gap-2";
+            
+            document.getElementById('cancel-edit-btn').classList.remove('hidden');
+            document.getElementById('cancel-edit-btn').classList.add('flex');
+            
+            lucide.createIcons();
+            
+            // Scroll ke form
+            document.getElementById('form-container').scrollIntoView({ behavior: 'smooth' });
+        };
+
+        window.cancelEdit = () => {
+            editingId = null;
+            document.getElementById('input-name').value = '';
+            document.getElementById('input-status').value = 'Masuk';
+            removePhoto();
+            setDateTimeDefaults();
+            
+            document.getElementById('form-title').innerHTML = '<i data-lucide="user-plus" class="w-5 h-5 text-indigo-500"></i> Isi Absensi';
+            const btn = document.getElementById('submit-btn');
+            btn.innerHTML = '<i data-lucide="check-circle" class="w-5 h-5"></i> <span>Simpan Absen</span>';
+            btn.className = "w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-sm hover:shadow transition-all flex items-center justify-center gap-2";
+            
+            document.getElementById('cancel-edit-btn').classList.add('hidden');
+            document.getElementById('cancel-edit-btn').classList.remove('flex');
+            
+            lucide.createIcons();
         };
 
         // --- CALENDAR LOGIC ---
@@ -611,7 +679,6 @@
             }
         }
 
-        // --- RENDER REKAP HARIAN ---
         function renderSelectedDay() {
             const container = document.getElementById('day-records-container');
             const emptyState = document.getElementById('day-empty-state');
@@ -660,9 +727,14 @@
                                     </div>
                                 </div>
                             </div>
-                            <button onclick="handleDelete(${r.id})" class="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md opacity-0 group-hover:opacity-100 transition-all" title="Hapus Status Ini">
-                                <i data-lucide="trash-2" class="w-4 h-4"></i>
-                            </button>
+                            <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                                <button onclick="editRecord(${r.id})" class="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md" title="Edit Data">
+                                    <i data-lucide="edit-3" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="handleDelete(${r.id})" class="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md" title="Hapus Lokal">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
                         </div>
                     `}).join('');
 
@@ -682,7 +754,7 @@
             }
         }
 
-        // --- SUBMIT ABSEN ---
+        // --- SUBMIT ABSEN (INSERT & UPDATE) ---
         document.getElementById('attendance-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const name = document.getElementById('input-name').value;
@@ -692,35 +764,63 @@
             const time = `${hour}:${minute}`; 
             
             const status = document.getElementById('input-status').value;
-            const btn = e.target.querySelector('button[type="submit"]');
+            const btn = document.getElementById('submit-btn');
 
             if (!name) return showNotification('Nama Lengkap harus dipilih!', 'error');
             if (!currentPhotoData) return showNotification('Foto bukti wajib dilampirkan!', 'error');
 
             const originalHtml = btn.innerHTML;
-            btn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Menyimpan...';
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> <span>Menyimpan...</span>';
             btn.disabled = true;
 
             try {
-                const params = new URLSearchParams();
-                params.append('nama', name);
-                params.append('tanggal', date);
-                params.append('waktu', time);
-                params.append('status', status);
-                params.append('photoBase64', currentPhotoData.split(',')[1]);
-                params.append('mimeType', 'image/jpeg');
+                const formParams = new FormData();
+                formParams.append('nama', name);
+                formParams.append('tanggal', date);
+                formParams.append('waktu', time);
+                formParams.append('status', status);
+                
+                // Jika sedang Mode Edit
+                if (editingId) {
+                    const oldRec = records.find(r => r.id === editingId);
+                    formParams.append('action', 'update');
+                    formParams.append('old_nama', oldRec.name);
+                    formParams.append('old_tanggal', oldRec.date);
+                    formParams.append('old_status', oldRec.status);
+
+                    // Jika foto berbentuk link (http) berarti tidak perlu diupload lagi base64-nya
+                    if (currentPhotoData.startsWith('http')) {
+                        formParams.append('existingPhotoUrl', currentPhotoData);
+                    } else {
+                        formParams.append('photoBase64', currentPhotoData.split(',')[1]);
+                        formParams.append('mimeType', 'image/jpeg');
+                    }
+                } else {
+                    formParams.append('action', 'insert');
+                    formParams.append('photoBase64', currentPhotoData.split(',')[1]);
+                    formParams.append('mimeType', 'image/jpeg');
+                }
 
                 await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
                     mode: 'no-cors',
-                    body: params
+                    body: formParams
                 });
 
-                const newRec = { id: Date.now(), name, date, time, status, photo: currentPhotoData, synced: true };
-                records.unshift(newRec); 
-                localStorage.setItem('absensi_records', JSON.stringify(records));
+                // Update UI Lokal
+                if (editingId) {
+                    const idx = records.findIndex(r => r.id === editingId);
+                    if(idx !== -1) {
+                        records[idx] = { ...records[idx], name, date, time, status, photo: currentPhotoData, synced: true };
+                    }
+                    showNotification('Data absensi berhasil diupdate!', 'success');
+                } else {
+                    const newRec = { id: Date.now(), name, date, time, status, photo: currentPhotoData, synced: true };
+                    records.unshift(newRec); 
+                    showNotification('Absen berhasil disimpan ke Google Sheet!', 'success');
+                }
                 
-                showNotification('Berhasil disimpan ke Google Sheet!', 'success');
+                localStorage.setItem('absensi_records', JSON.stringify(records));
                 
                 selectedDateStr = date;
                 const dateObj = new Date(date);
@@ -729,32 +829,28 @@
                 
                 renderCalendar();
                 renderSelectedDay();
-                
-                document.getElementById('input-name').value = '';
-                document.getElementById('input-status').value = 'Masuk';
-                removePhoto();
-                setDateTimeDefaults();
+                cancelEdit();
+
             } catch (err) {
                 console.error(err);
                 
-                const newRec = { id: Date.now(), name, date, time, status, photo: currentPhotoData, synced: false };
-                records.unshift(newRec); 
+                if (editingId) {
+                    const idx = records.findIndex(r => r.id === editingId);
+                    if(idx !== -1) records[idx] = { ...records[idx], name, date, time, status, photo: currentPhotoData, synced: false };
+                    showNotification('Data diupdate lokal. Klik "Update Data" saat sinyal stabil.', 'error');
+                } else {
+                    const newRec = { id: Date.now(), name, date, time, status, photo: currentPhotoData, synced: false };
+                    records.unshift(newRec); 
+                    showNotification('Data disimpan lokal. Klik "Update Data" saat sinyal stabil.', 'error');
+                }
+                
                 localStorage.setItem('absensi_records', JSON.stringify(records));
-                
-                showNotification('Data disimpan lokal. Klik "Update Data" saat sinyal stabil.', 'error');
-                
                 selectedDateStr = date;
-                const dateObj = new Date(date);
-                currentMonthDate.setMonth(dateObj.getMonth());
-                currentMonthDate.setFullYear(dateObj.getFullYear());
-
+                
                 renderCalendar();
                 renderSelectedDay();
-                
-                document.getElementById('input-name').value = '';
-                document.getElementById('input-status').value = 'Masuk';
-                removePhoto();
-                setDateTimeDefaults();
+                cancelEdit();
+
             } finally {
                 btn.innerHTML = originalHtml;
                 btn.disabled = false;
@@ -762,7 +858,7 @@
             }
         });
 
-        // --- SINKRONISASI MANUAL & MUAT DATA CLOUD (UPDATE DATA) ---
+        // --- SINKRONISASI MANUAL ---
         window.syncData = async () => {
             const btn = document.getElementById('btn-sync');
             const originalHtml = btn.innerHTML;
@@ -770,25 +866,30 @@
             btn.disabled = true;
             lucide.createIcons();
 
-            // 1. Kirm data yang belum tersinkron
             const unsyncedRecords = records.filter(r => r.synced === false);
             let successCount = 0;
             
             for (let i = 0; i < unsyncedRecords.length; i++) {
                 const rec = unsyncedRecords[i];
                 try {
-                    const params = new URLSearchParams();
-                    params.append('nama', rec.name);
-                    params.append('tanggal', rec.date);
-                    params.append('waktu', rec.time);
-                    params.append('status', rec.status);
-                    params.append('photoBase64', rec.photo ? rec.photo.split(',')[1] : '');
-                    params.append('mimeType', 'image/jpeg');
+                    const formParams = new FormData();
+                    formParams.append('action', 'insert');
+                    formParams.append('nama', rec.name);
+                    formParams.append('tanggal', rec.date);
+                    formParams.append('waktu', rec.time);
+                    formParams.append('status', rec.status);
+                    
+                    if (rec.photo && rec.photo.startsWith('http')) {
+                        formParams.append('existingPhotoUrl', rec.photo);
+                    } else {
+                        formParams.append('photoBase64', rec.photo ? rec.photo.split(',')[1] : '');
+                        formParams.append('mimeType', 'image/jpeg');
+                    }
 
                     await fetch(APPS_SCRIPT_URL, {
                         method: 'POST',
                         mode: 'no-cors',
-                        body: params
+                        body: formParams
                     });
 
                     const index = records.findIndex(r => r.id === rec.id);
@@ -801,7 +902,6 @@
                 }
             }
 
-            // 2. Ambil data terbaru dari Spreadsheet untuk di-load ke PC ini
             await fetchCloudData();
 
             btn.innerHTML = originalHtml;
@@ -841,7 +941,6 @@
 
         // Inisialisasi awal
         fetchNames().then(() => {
-            // Setelah memuat nama, panggil data cloud agar muncul di PC mana pun
             fetchCloudData();
         });
         setDateTimeDefaults();
