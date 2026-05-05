@@ -90,7 +90,7 @@
                         </select>
                     </div>
 
-                    <!-- Input Status Kehadiran (Dipindah ke atas) -->
+                    <!-- Input Status Kehadiran -->
                     <div>
                         <label class="block text-sm font-semibold text-slate-700 mb-1">Status Kehadiran</label>
                         <select id="input-status" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white cursor-pointer">
@@ -107,14 +107,11 @@
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-slate-700 mb-1">Waktu (24 Jam)</label>
-                            <!-- Dropdown Waktu Custom (Memaksa 24 Jam) -->
                             <div class="flex gap-2 items-center">
                                 <select id="input-time-hour" class="w-full px-2 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white text-center cursor-pointer">
-                                    <!-- Options akan diisi oleh JS -->
                                 </select>
                                 <span class="font-bold text-slate-500">:</span>
                                 <select id="input-time-minute" class="w-full px-2 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white text-center cursor-pointer">
-                                    <!-- Options akan diisi oleh JS -->
                                 </select>
                             </div>
                         </div>
@@ -170,7 +167,7 @@
                         </div>
                         
                         <!-- TOMBOL UPDATE DATA SINKRONISASI -->
-                        <button id="btn-sync" onclick="syncData()" class="flex items-center gap-1.5 text-sm px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium shadow-sm" title="Sinkronkan data yang gagal tersimpan ke Spreadsheet">
+                        <button id="btn-sync" onclick="syncData()" class="flex items-center gap-1.5 text-sm px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium shadow-sm" title="Muat & Sinkronkan data ke Spreadsheet">
                             <i data-lucide="refresh-cw" class="w-4 h-4"></i><span class="hidden sm:inline">Update Data</span>
                         </button>
                         
@@ -214,8 +211,8 @@
     <script type="module">
         lucide.createIcons();
 
-        // --- URL WEB APP GOOGLE APPS SCRIPT BARU ---
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx0sYsgzUlza1VVut1CKRBPdlAfhvoMduiurYzJe8aOZR_CEHZpn8YiDuThfzIW7YvVEg/exec';
+        // --- URL WEB APP GOOGLE APPS SCRIPT ---
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbys8VukdBSnI3J9pQVXYTTLlYe_N4FySM89iW5ReoypdRS8FjQrxhwqMthOdi2puntYbg/exec';
         const NAMES_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8ACyi03DJ77mANO19x_hJV82Xs8rNBBLyT9IIGc1tgYGNrv9WMufjm940iEPx4QU6Eta6T8Ekv2-X/pub?gid=219192679&single=true&output=csv';
 
         let records = JSON.parse(localStorage.getItem('absensi_records')) || [];
@@ -294,6 +291,36 @@
                 }
             }
         });
+
+        // --- MEMUAT DATA DARI SPREADSHEET (CLOUD) AGAR SINKRON DI SEMUA PC ---
+        async function fetchCloudData() {
+            try {
+                const btn = document.getElementById('btn-sync');
+                const originalHtml = btn.innerHTML;
+                btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span class="hidden sm:inline">Memuat Data...</span>';
+                lucide.createIcons();
+
+                const response = await fetch(APPS_SCRIPT_URL);
+                const cloudData = await response.json();
+                
+                if (Array.isArray(cloudData)) {
+                    // Simpan data lokal yang gagal terkirim (jika ada)
+                    const unsyncedRecords = records.filter(r => r.synced === false);
+                    
+                    // Gabungkan data: Unsynced lokal + Data asli dari cloud (Google Sheets)
+                    records = [...unsyncedRecords, ...cloudData];
+                    
+                    localStorage.setItem('absensi_records', JSON.stringify(records));
+                    renderCalendar();
+                    renderSelectedDay();
+                }
+                
+                btn.innerHTML = originalHtml;
+                lucide.createIcons();
+            } catch (error) {
+                console.error("Gagal load data dari Spreadsheet:", error);
+            }
+        }
 
         // --- MODAL NAMA ---
         window.openManageNamesModal = () => {
@@ -515,17 +542,15 @@
                 
                 const dayRecords = records.filter(r => r.date === dateStr);
                 
-                // Urutkan waktu agar berurutan (Masuk dulu, lalu Pulang)
                 dayRecords.sort((a, b) => a.time.localeCompare(b.time));
                 
                 let indicators = '';
                 if (dayRecords.length > 0) {
-                    const limit = 4; // Tingkatkan limit agar muat lebih banyak foto
+                    const limit = 4;
                     const showRecs = dayRecords.slice(0, limit);
                     
                     indicators += `<div class="flex -space-x-1.5 justify-center mt-1 sm:mt-1.5 w-full px-1">`;
                     showRecs.forEach(r => {
-                        // Perubahan warna: Hijau untuk Masuk, Merah untuk Pulang
                         const ringColor = r.status === 'Masuk' ? 'ring-emerald-400' : 'ring-red-400';
                         if(r.photo) {
                              indicators += `<img src="${r.photo}" class="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover ring-2 ${ringColor} shadow-sm bg-white" title="${r.name} (${r.status})" />`;
@@ -562,7 +587,7 @@
             }
         }
 
-        // --- RENDER REKAP HARIAN (MENGGABUNGKAN NAMA YANG SAMA) ---
+        // --- RENDER REKAP HARIAN ---
         function renderSelectedDay() {
             const container = document.getElementById('day-records-container');
             const emptyState = document.getElementById('day-empty-state');
@@ -598,7 +623,6 @@
                             ? '<i data-lucide="wifi-off" class="w-3.5 h-3.5 inline text-red-400 ml-1" title="Belum di-update ke Spreadsheet"></i>' 
                             : '<i data-lucide="check-circle-2" class="w-3.5 h-3.5 inline text-emerald-500 ml-1" title="Tersimpan di Spreadsheet"></i>';
 
-                        // Perubahan warna background dan teks: Hijau untuk Masuk, Merah untuk Pulang
                         const statusBadgeColor = r.status === 'Masuk' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700';
 
                         return `
@@ -639,7 +663,6 @@
             e.preventDefault();
             const name = document.getElementById('input-name').value;
             const date = document.getElementById('input-date').value;
-            // Dapatkan waktu dari dua dropdown khusus (jam dan menit)
             const hour = document.getElementById('input-time-hour').value;
             const minute = document.getElementById('input-time-minute').value;
             const time = `${hour}:${minute}`; 
@@ -663,7 +686,6 @@
                 params.append('photoBase64', currentPhotoData.split(',')[1]);
                 params.append('mimeType', 'image/jpeg');
 
-                // DITAMBAHKAN mode: 'no-cors' AGAR TIDAK DIBLOKIR BROWSER
                 await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
                     mode: 'no-cors',
@@ -716,21 +738,16 @@
             }
         });
 
-        // --- SINKRONISASI MANUAL (TOMBOL UPDATE DATA) ---
+        // --- SINKRONISASI MANUAL & MUAT DATA CLOUD (UPDATE DATA) ---
         window.syncData = async () => {
-            const unsyncedRecords = records.filter(r => r.synced === false);
-            
-            if (unsyncedRecords.length === 0) {
-                showNotification('Semua data absensi sudah tersimpan di Spreadsheet!', 'success');
-                return;
-            }
-
             const btn = document.getElementById('btn-sync');
             const originalHtml = btn.innerHTML;
-            btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span class="hidden sm:inline">Menyinkronkan...</span>';
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span class="hidden sm:inline">Memuat...</span>';
             btn.disabled = true;
             lucide.createIcons();
 
+            // 1. Kirm data yang belum tersinkron
+            const unsyncedRecords = records.filter(r => r.synced === false);
             let successCount = 0;
             
             for (let i = 0; i < unsyncedRecords.length; i++) {
@@ -744,7 +761,6 @@
                     params.append('photoBase64', rec.photo ? rec.photo.split(',')[1] : '');
                     params.append('mimeType', 'image/jpeg');
 
-                    // DITAMBAHKAN mode: 'no-cors' 
                     await fetch(APPS_SCRIPT_URL, {
                         method: 'POST',
                         mode: 'no-cors',
@@ -761,8 +777,8 @@
                 }
             }
 
-            localStorage.setItem('absensi_records', JSON.stringify(records));
-            renderSelectedDay();
+            // 2. Ambil data terbaru dari Spreadsheet untuk di-load ke PC ini
+            await fetchCloudData();
 
             btn.innerHTML = originalHtml;
             btn.disabled = false;
@@ -771,7 +787,7 @@
             if (successCount > 0) {
                 showNotification(`${successCount} data berhasil diupdate ke Spreadsheet!`, 'success');
             } else {
-                showNotification('Gagal mengupdate data. Periksa koneksi internet Anda.', 'error');
+                showNotification('Data sudah ter-update & tersinkronisasi.', 'success');
             }
         };
 
@@ -800,7 +816,10 @@
         };
 
         // Inisialisasi awal
-        fetchNames();
+        fetchNames().then(() => {
+            // Setelah memuat nama, panggil data cloud agar muncul di PC mana pun
+            fetchCloudData();
+        });
         setDateTimeDefaults();
         renderCalendar();
         renderSelectedDay();
