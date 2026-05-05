@@ -85,12 +85,21 @@
                                 <i data-lucide="settings-2" class="w-3.5 h-3.5"></i> Kelola
                             </button>
                         </div>
-                        <select id="input-name" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white">
+                        <select id="input-name" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white cursor-pointer">
                             <option value="">Memuat Nama...</option>
                         </select>
                     </div>
 
-                    <!-- Input Tanggal & Waktu -->
+                    <!-- Input Status Kehadiran (Dipindah ke atas) -->
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Status Kehadiran</label>
+                        <select id="input-status" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white cursor-pointer">
+                            <option value="Masuk">Masuk</option>
+                            <option value="Pulang">Pulang</option>
+                        </select>
+                    </div>
+
+                    <!-- Input Tanggal & Waktu (Custom 24-jam) -->
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-semibold text-slate-700 mb-1">Tanggal</label>
@@ -98,17 +107,17 @@
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-slate-700 mb-1">Waktu (24 Jam)</label>
-                            <input type="time" id="input-time" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all appearance-none" />
+                            <!-- Dropdown Waktu Custom (Memaksa 24 Jam) -->
+                            <div class="flex gap-2 items-center">
+                                <select id="input-time-hour" class="w-full px-2 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white text-center cursor-pointer">
+                                    <!-- Options akan diisi oleh JS -->
+                                </select>
+                                <span class="font-bold text-slate-500">:</span>
+                                <select id="input-time-minute" class="w-full px-2 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white text-center cursor-pointer">
+                                    <!-- Options akan diisi oleh JS -->
+                                </select>
+                            </div>
                         </div>
-                    </div>
-
-                    <!-- Input Status -->
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-1">Status Kehadiran</label>
-                        <select id="input-status" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white">
-                            <option value="Masuk">Masuk</option>
-                            <option value="Pulang">Pulang</option>
-                        </select>
                     </div>
 
                     <!-- Upload Foto -->
@@ -371,13 +380,36 @@
             }, 3500);
         }
 
+        // Inisialisasi Pilihan Waktu Kustom (24 Jam)
+        function initTimeDropdowns() {
+            const hourSelect = document.getElementById('input-time-hour');
+            const minuteSelect = document.getElementById('input-time-minute');
+            
+            for (let i = 0; i < 24; i++) {
+                const val = String(i).padStart(2, '0');
+                hourSelect.innerHTML += `<option value="${val}">${val}</option>`;
+            }
+            
+            for (let i = 0; i < 60; i++) {
+                const val = String(i).padStart(2, '0');
+                minuteSelect.innerHTML += `<option value="${val}">${val}</option>`;
+            }
+        }
+        initTimeDropdowns();
+
         function setDateTimeDefaults() {
             const now = new Date();
             const yyyy = now.getFullYear();
             const mm = String(now.getMonth() + 1).padStart(2, '0');
             const dd = String(now.getDate()).padStart(2, '0');
             document.getElementById('input-date').value = `${yyyy}-${mm}-${dd}`;
-            document.getElementById('input-time').value = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            
+            // Set Waktu di Dropdown
+            const hours24 = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('input-time-hour').value = hours24;
+            document.getElementById('input-time-minute').value = minutes;
+            
             document.getElementById('current-date-display').textContent = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         }
 
@@ -493,7 +525,8 @@
                     
                     indicators += `<div class="flex -space-x-1.5 justify-center mt-1 sm:mt-1.5 w-full px-1">`;
                     showRecs.forEach(r => {
-                        const ringColor = r.status === 'Masuk' ? 'ring-emerald-400' : 'ring-blue-400';
+                        // Perubahan warna: Hijau untuk Masuk, Merah untuk Pulang
+                        const ringColor = r.status === 'Masuk' ? 'ring-emerald-400' : 'ring-red-400';
                         if(r.photo) {
                              indicators += `<img src="${r.photo}" class="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover ring-2 ${ringColor} shadow-sm bg-white" title="${r.name} (${r.status})" />`;
                         } else {
@@ -565,12 +598,15 @@
                             ? '<i data-lucide="wifi-off" class="w-3.5 h-3.5 inline text-red-400 ml-1" title="Belum di-update ke Spreadsheet"></i>' 
                             : '<i data-lucide="check-circle-2" class="w-3.5 h-3.5 inline text-emerald-500 ml-1" title="Tersimpan di Spreadsheet"></i>';
 
+                        // Perubahan warna background dan teks: Hijau untuk Masuk, Merah untuk Pulang
+                        const statusBadgeColor = r.status === 'Masuk' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700';
+
                         return `
                         <div class="flex items-center justify-between mt-2 group/item p-2 rounded-lg bg-slate-50 border border-slate-100">
                             <div class="flex items-center gap-3">
                                 <img src="${r.photo}" onclick="openModal(this.src)" class="w-10 h-10 rounded-lg object-cover cursor-pointer hover:opacity-80 bg-slate-200 border border-slate-200" title="Foto ${r.status}" />
-                                <div class="flex flex-col">
-                                    <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">${r.status}</span>
+                                <div class="flex flex-col items-start gap-1">
+                                    <span class="px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${statusBadgeColor}">${r.status}</span>
                                     <div class="flex items-center gap-1 text-xs font-medium text-slate-700">
                                         <i data-lucide="clock" class="w-3.5 h-3.5 text-indigo-500"></i> ${r.time} ${syncIcon}
                                     </div>
@@ -603,7 +639,11 @@
             e.preventDefault();
             const name = document.getElementById('input-name').value;
             const date = document.getElementById('input-date').value;
-            const time = document.getElementById('input-time').value; 
+            // Dapatkan waktu dari dua dropdown khusus (jam dan menit)
+            const hour = document.getElementById('input-time-hour').value;
+            const minute = document.getElementById('input-time-minute').value;
+            const time = `${hour}:${minute}`; 
+            
             const status = document.getElementById('input-status').value;
             const btn = e.target.querySelector('button[type="submit"]');
 
