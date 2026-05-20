@@ -8,214 +8,244 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Custom scrollbar untuk estetik */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
 </head>
-<body class="min-h-screen bg-slate-50 text-slate-800 font-sans p-4 md:p-8">
+<body class="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50 text-slate-800 font-sans p-4 md:p-8 selection:bg-indigo-200">
 
-    <!-- Header -->
     <header class="max-w-6xl mx-auto mb-8 text-center md:text-left flex flex-col md:flex-row items-center justify-between">
         <div>
-            <h1 class="text-3xl font-bold text-indigo-900 flex items-center justify-center md:justify-start gap-3">
-                <i data-lucide="file-check" class="w-8 h-8 text-indigo-600"></i>
-                Sistem Rekap Absensi
+            <h1 class="text-3xl md:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-800 to-blue-700 flex items-center justify-center md:justify-start gap-3 drop-shadow-sm">
+                <div class="p-2 bg-white rounded-xl shadow-sm border border-indigo-50"><i data-lucide="file-check" class="w-8 h-8 text-indigo-600"></i></div>
+                Rekap Absensi
             </h1>
-            <p class="text-slate-500 mt-2">Catat kehadiran harian dengan bukti foto.</p>
+            <p class="text-slate-500 mt-3 font-medium">Catat kehadiran harian, shift kerja, dan bukti foto.</p>
         </div>
-        <div class="mt-4 md:mt-0 bg-white px-4 py-2 rounded-full shadow-sm border border-slate-200 flex items-center gap-2">
-            <i data-lucide="clock" class="w-5 h-5 text-indigo-500"></i>
-            <span id="current-date-display" class="font-medium"></span>
+        <div class="mt-5 md:mt-0 bg-white/70 backdrop-blur-md px-5 py-2.5 rounded-2xl shadow-sm border border-white flex items-center gap-2 text-slate-700">
+            <i data-lucide="calendar-clock" class="w-5 h-5 text-indigo-500"></i>
+            <span id="current-date-display" class="font-bold text-sm tracking-wide"></span>
         </div>
     </header>
 
     <!-- Notifikasi Toast -->
-    <div id="notification-toast" class="fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-all transform duration-300 translate-y-[-100%] opacity-0">
-        <i id="notification-icon" data-lucide="check-circle" class="w-5 h-5 text-white"></i>
-        <p id="notification-message" class="font-medium text-white"></p>
+    <div id="notification-toast" class="fixed top-6 right-6 z-50 px-5 py-4 rounded-2xl shadow-2xl flex items-center gap-3 transition-all transform duration-500 translate-y-[-150%] opacity-0">
+        <i id="notification-icon" data-lucide="check-circle" class="w-6 h-6 text-white"></i>
+        <p id="notification-message" class="font-bold text-sm tracking-wide text-white"></p>
     </div>
 
     <!-- Modal Foto Layar Penuh -->
-    <div id="image-modal" class="fixed inset-0 z-[60] bg-black/80 hidden flex-col items-center justify-center p-4 transition-opacity backdrop-blur-sm">
-        <button onclick="closeModal()" class="absolute top-4 right-4 md:top-8 md:right-8 p-2 text-white/70 hover:text-white bg-black/50 hover:bg-black/80 rounded-full transition-all">
-            <i data-lucide="x" class="w-8 h-8"></i>
+    <div id="image-modal" class="fixed inset-0 z-[60] bg-slate-900/90 hidden flex-col items-center justify-center p-4 transition-opacity backdrop-blur-sm">
+        <button onclick="closeModal()" class="absolute top-6 right-6 p-2 text-white/70 hover:text-white bg-black/40 hover:bg-black/80 rounded-full transition-all hover:scale-110">
+            <i data-lucide="x" class="w-6 h-6"></i>
         </button>
-        <img id="modal-image" src="" alt="Foto Absen Lebar" class="max-w-full max-h-[85vh] rounded-lg shadow-2xl object-contain" />
-        <p class="text-white/80 mt-4 font-medium text-sm">Klik di luar gambar untuk menutup</p>
+        <img id="modal-image" src="" alt="Foto Absen Lebar" class="max-w-full max-h-[85vh] rounded-2xl shadow-2xl object-contain border-4 border-white/10" />
+        <p class="text-white/60 mt-4 font-medium text-sm bg-black/30 px-4 py-1.5 rounded-full">Ketuk di luar gambar untuk menutup</p>
     </div>
 
     <!-- Modal Kelola Nama -->
-    <div id="manage-names-modal" class="fixed inset-0 z-[65] bg-black/60 hidden flex-col items-center justify-center p-4 transition-opacity backdrop-blur-sm">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[85vh]">
-            <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                <h3 class="font-bold text-slate-800 flex items-center gap-2"><i data-lucide="users" class="w-5 h-5 text-indigo-500"></i> Kelola Nama Lengkap</h3>
-                <button type="button" onclick="closeManageNamesModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+    <div id="manage-names-modal" class="fixed inset-0 z-[65] bg-slate-900/70 hidden flex-col items-center justify-center p-4 transition-opacity backdrop-blur-sm">
+        <div class="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[85vh] border border-white">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-white">
+                <h3 class="font-bold text-slate-800 flex items-center gap-2"><div class="p-1.5 bg-indigo-50 rounded-lg text-indigo-600"><i data-lucide="users" class="w-5 h-5"></i></div> Kelola Pegawai</h3>
+                <button type="button" onclick="closeManageNamesModal()" class="text-slate-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-xl transition-all">
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
-            <div class="p-5 border-b border-slate-100 bg-white">
-                <label class="block text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wider">Tambah Nama Baru</label>
+            <div class="p-6 border-b border-slate-100 bg-slate-50/50">
+                <label class="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-widest">Tambah Baru</label>
                 <div class="flex gap-2">
-                    <input type="text" id="new-name-input" placeholder="Ketik nama lengkap..." class="flex-1 px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none text-sm transition-all">
-                    <button type="button" onclick="addNewName()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-all shadow-sm flex items-center gap-1">
-                        <i data-lucide="plus" class="w-4 h-4"></i> Tambah
+                    <input type="text" id="new-name-input" placeholder="Ketik nama lengkap..." class="flex-1 px-4 py-3 rounded-xl border border-slate-200 focus:bg-white focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none text-sm transition-all shadow-sm">
+                    <button type="button" onclick="addNewName()" class="px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold transition-all shadow-md shadow-indigo-200 hover:shadow-indigo-300 hover:-translate-y-0.5 flex items-center gap-1.5">
+                        <i data-lucide="plus" class="w-4 h-4"></i> Add
                     </button>
                 </div>
             </div>
-            <div class="p-5 flex-1 overflow-auto bg-slate-50/50">
-                <label class="block text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wider">Daftar Nama Tersedia</label>
-                <ul id="manage-names-list" class="space-y-2"></ul>
+            <div class="p-6 flex-1 overflow-auto bg-slate-50/30">
+                <label class="block text-xs font-bold text-slate-500 mb-3 uppercase tracking-widest">Daftar Nama Aktif</label>
+                <ul id="manage-names-list" class="space-y-2.5"></ul>
             </div>
         </div>
     </div>
 
-    <main class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <main class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         <!-- KOLOM KIRI: FORM INPUT -->
-        <div class="lg:col-span-1" id="form-container">
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 relative">
+        <div class="lg:col-span-4" id="form-container">
+            <div class="bg-white/80 backdrop-blur-2xl rounded-3xl shadow-xl shadow-indigo-100/50 border border-white p-6 md:p-8 relative">
                 
-                <h2 class="text-xl font-bold text-slate-800 mb-6 border-b pb-4 flex items-center gap-2" id="form-title">
-                    <i data-lucide="user-plus" class="w-5 h-5 text-indigo-500"></i>
-                    Isi Absensi
+                <h2 class="text-xl font-extrabold text-slate-800 mb-6 flex items-center gap-2" id="form-title">
+                    <div class="p-2 bg-indigo-100 rounded-xl text-indigo-600"><i data-lucide="fingerprint" class="w-5 h-5"></i></div>
+                    Form Presensi
                 </h2>
 
                 <form id="attendance-form" class="space-y-5">
-                    <!-- Input Nama -->
+                    <!-- 1. Input Nama -->
                     <div>
-                        <div class="flex justify-between items-center mb-1">
-                            <label class="block text-sm font-semibold text-slate-700">Nama Lengkap</label>
-                            <button type="button" onclick="openManageNamesModal()" class="text-xs font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition-colors bg-indigo-50 px-2 py-1 rounded-md">
+                        <div class="flex justify-between items-center mb-1.5">
+                            <label class="block text-sm font-bold text-slate-700">Nama Lengkap</label>
+                            <button type="button" onclick="openManageNamesModal()" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition-colors bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg">
                                 <i data-lucide="settings-2" class="w-3.5 h-3.5"></i> Kelola
                             </button>
                         </div>
-                        <select id="input-name" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white cursor-pointer">
-                            <option value="">Memuat Nama...</option>
-                        </select>
+                        <div class="relative">
+                            <i data-lucide="user" class="w-5 h-5 absolute left-4 top-3 text-slate-400"></i>
+                            <select id="input-name" class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 focus:bg-white bg-slate-50/50 focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-medium text-slate-700 cursor-pointer appearance-none">
+                                <option value="">Pilih Nama Pegawai...</option>
+                            </select>
+                        </div>
                     </div>
 
-                    <!-- Input Status Kehadiran -->
+                    <!-- 2. Input Shift (BARU) -->
                     <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-1">Status Kehadiran</label>
-                        <select id="input-status" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white cursor-pointer">
-                            <option value="Masuk">Masuk</option>
-                            <option value="Pulang">Pulang</option>
-                        </select>
+                        <label class="block text-sm font-bold text-slate-700 mb-1.5">Shift Kerja</label>
+                        <div class="relative">
+                            <i data-lucide="sun-moon" class="w-5 h-5 absolute left-4 top-3 text-slate-400"></i>
+                            <select id="input-shift" class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 focus:bg-white bg-slate-50/50 focus:ring-4 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all font-medium text-slate-700 cursor-pointer appearance-none">
+                                <option value="">Pilih Shift Kerja...</option>
+                                <option value="Shift 1 (Pagi)">☀️ Shift 1 (Pagi)</option>
+                                <option value="Shift 2 (Siang)">⛅ Shift 2 (Siang)</option>
+                                <option value="Shift 3 (Malam)">🌙 Shift 3 (Malam)</option>
+                            </select>
+                        </div>
                     </div>
 
-                    <!-- Input Tanggal & Waktu -->
+                    <!-- 3. Input Status Kehadiran -->
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1.5">Status Kehadiran</label>
+                        <div class="relative">
+                            <i data-lucide="log-in" class="w-5 h-5 absolute left-4 top-3 text-slate-400"></i>
+                            <select id="input-status" class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 focus:bg-white bg-slate-50/50 focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-medium text-slate-700 cursor-pointer appearance-none">
+                                <option value="Masuk">Masuk</option>
+                                <option value="Pulang">Pulang</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 4. & 5. Input Tanggal & Waktu -->
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-1">Tanggal</label>
-                            <input type="date" id="input-date" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all appearance-none" />
+                            <label class="block text-sm font-bold text-slate-700 mb-1.5">Tanggal</label>
+                            <input type="date" id="input-date" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:bg-white bg-slate-50/50 focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-medium text-slate-700" />
                         </div>
                         <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-1">Waktu (24 Jam)</label>
-                            <div class="flex gap-2 items-center">
-                                <select id="input-time-hour" class="w-full px-2 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white text-center cursor-pointer">
-                                </select>
-                                <span class="font-bold text-slate-500">:</span>
-                                <select id="input-time-minute" class="w-full px-2 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white text-center cursor-pointer">
-                                </select>
+                            <label class="block text-sm font-bold text-slate-700 mb-1.5">Waktu</label>
+                            <div class="flex gap-1.5 items-center">
+                                <select id="input-time-hour" class="w-full px-1 py-3 rounded-xl border border-slate-200 focus:bg-white bg-slate-50/50 focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-medium text-slate-700 text-center cursor-pointer appearance-none"></select>
+                                <span class="font-black text-slate-400">:</span>
+                                <select id="input-time-minute" class="w-full px-1 py-3 rounded-xl border border-slate-200 focus:bg-white bg-slate-50/50 focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-medium text-slate-700 text-center cursor-pointer appearance-none"></select>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Upload Foto -->
+                    <!-- 6. Upload Foto -->
                     <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-1">Bukti Foto / Selfie</label>
-                        <div id="photo-placeholder" onclick="document.getElementById('file-input').click()" class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer hover:bg-slate-50 hover:border-indigo-400 transition-all group">
-                            <div class="space-y-2 text-center">
-                                <div class="flex justify-center gap-3">
-                                    <div class="p-3 bg-indigo-50 rounded-full text-indigo-600 group-hover:bg-indigo-100 transition-colors"><i data-lucide="camera" class="w-6 h-6"></i></div>
-                                    <div class="p-3 bg-indigo-50 rounded-full text-indigo-600 group-hover:bg-indigo-100 transition-colors"><i data-lucide="image" class="w-6 h-6"></i></div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1.5">Bukti Foto Selfie</label>
+                        <div id="photo-placeholder" onclick="document.getElementById('file-input').click()" class="mt-1 flex justify-center px-6 pt-6 pb-7 border-2 border-slate-200 border-dashed rounded-2xl cursor-pointer bg-slate-50/50 hover:bg-indigo-50/50 hover:border-indigo-300 transition-all group">
+                            <div class="space-y-3 text-center">
+                                <div class="flex justify-center gap-4">
+                                    <div class="p-3.5 bg-white rounded-2xl text-indigo-500 shadow-sm border border-slate-100 group-hover:scale-110 group-hover:shadow-md group-hover:text-indigo-600 transition-all"><i data-lucide="camera" class="w-6 h-6"></i></div>
+                                    <div class="p-3.5 bg-white rounded-2xl text-indigo-500 shadow-sm border border-slate-100 group-hover:scale-110 group-hover:shadow-md group-hover:text-indigo-600 transition-all"><i data-lucide="image" class="w-6 h-6"></i></div>
                                 </div>
                                 <div class="text-sm text-slate-600 flex flex-col">
-                                    <span class="font-semibold text-indigo-600">Klik untuk upload foto</span>
-                                    <span class="text-xs mt-1">Gunakan kamera atau galeri</span>
+                                    <span class="font-extrabold text-indigo-600 tracking-wide">Ketuk untuk Ambil Foto</span>
+                                    <span class="text-[11px] mt-1 text-slate-400 font-medium">Buka Kamera atau Pilih dari Galeri</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div id="photo-preview" class="hidden relative mt-2 rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
-                            <img id="preview-img" src="" alt="Preview" class="w-full h-48 object-cover cursor-pointer" onclick="openModal(this.src)" title="Klik untuk perbesar" />
-                            <button type="button" onclick="removePhoto()" class="absolute top-2 right-2 p-1.5 bg-white/90 backdrop-blur-sm text-red-600 rounded-full shadow-sm hover:bg-red-50 transition-colors" title="Hapus Foto">
-                                <i data-lucide="x" class="w-5 h-5"></i>
+                        <div id="photo-preview" class="hidden relative mt-2 rounded-2xl overflow-hidden border-2 border-indigo-100 shadow-md">
+                            <img id="preview-img" src="" alt="Preview" class="w-full h-52 object-cover cursor-pointer hover:scale-105 transition-transform duration-500" onclick="openModal(this.src)" title="Klik untuk perbesar" />
+                            <button type="button" onclick="removePhoto()" class="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm text-red-500 hover:text-white rounded-xl shadow-lg hover:bg-red-500 transition-all hover:scale-110" title="Hapus Foto">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
                             </button>
+                            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pointer-events-none">
+                                <p class="text-white text-xs font-bold tracking-wider flex items-center gap-1.5"><i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-400"></i> Foto siap dikirim</p>
+                            </div>
                         </div>
                         <input type="file" id="file-input" accept="image/*" capture="environment" class="hidden" onchange="handlePhotoUpload(event)" />
                     </div>
 
-                    <button type="submit" id="submit-btn" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-sm hover:shadow transition-all flex items-center justify-center gap-2">
-                        <i data-lucide="check-circle" class="w-5 h-5"></i> <span>Simpan Absen</span>
+                    <button type="submit" id="submit-btn" class="w-full py-4 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-extrabold text-sm tracking-wide rounded-2xl shadow-lg shadow-indigo-200 hover:shadow-indigo-300 hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center gap-2">
+                        <i data-lucide="send" class="w-5 h-5"></i> <span>KIRIM DATA ABSEN</span>
                     </button>
                     
-                    <button type="button" id="cancel-edit-btn" onclick="cancelEdit()" class="hidden w-full py-2.5 mt-2 text-slate-500 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 font-bold rounded-xl transition-all items-center justify-center gap-2">
-                        <i data-lucide="x" class="w-4 h-4"></i> Batal Edit
+                    <button type="button" id="cancel-edit-btn" onclick="cancelEdit()" class="hidden w-full py-3.5 mt-3 text-slate-500 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 font-bold rounded-2xl transition-all items-center justify-center gap-2">
+                        <i data-lucide="x-circle" class="w-4 h-4"></i> Batalkan Perubahan
                     </button>
                 </form>
             </div>
         </div>
 
         <!-- KOLOM KANAN: CALENDAR VIEW -->
-        <div class="lg:col-span-2">
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-full">
+        <div class="lg:col-span-8">
+            <div class="bg-white/80 backdrop-blur-2xl rounded-3xl shadow-xl shadow-slate-200/50 border border-white overflow-hidden flex flex-col h-full">
                 
                 <!-- Toolbar Kalender -->
-                <div class="p-4 md:px-6 border-b border-slate-100 flex flex-wrap justify-between items-center gap-4 bg-slate-50/80">
-                    <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                        <i data-lucide="calendar-days" class="w-5 h-5 text-indigo-500"></i> Kalender Rekap
+                <div class="p-5 md:px-8 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white/50">
+                    <h2 class="text-xl font-extrabold text-slate-800 flex items-center gap-2.5">
+                        <div class="p-2 bg-blue-50 rounded-xl text-blue-500"><i data-lucide="calendar-days" class="w-5 h-5"></i></div>
+                        Kalender Riwayat
                     </h2>
                     
-                    <div class="flex flex-wrap items-center gap-2 w-full xl:w-auto">
-                        <div class="flex items-center bg-white border border-slate-200 rounded-lg shadow-sm p-1 mr-2">
-                            <button onclick="prevMonth()" class="p-1.5 rounded-md hover:bg-slate-100 text-slate-600 transition-colors"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
-                            <span id="calendar-month-year" class="font-bold w-28 text-center text-slate-700 text-sm">Bulan Tahun</span>
-                            <button onclick="nextMonth()" class="p-1.5 rounded-md hover:bg-slate-100 text-slate-600 transition-colors"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+                    <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                        <!-- Kontrol Bulan -->
+                        <div class="flex items-center bg-white border border-slate-200 rounded-xl shadow-sm p-1.5">
+                            <button onclick="prevMonth()" class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+                            <span id="calendar-month-year" class="font-bold w-32 text-center text-slate-700 text-sm uppercase tracking-wider"></span>
+                            <button onclick="nextMonth()" class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
                         </div>
                         
-                        <!-- TOMBOL UPDATE DATA SINKRONISASI (DISEMBUNYIKAN) -->
-                        <button id="btn-sync" onclick="syncData()" style="display: none;" class="flex items-center gap-1.5 text-sm px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium shadow-sm" title="Muat & Sinkronkan data ke Spreadsheet">
-                            <i data-lucide="refresh-cw" class="w-4 h-4"></i><span class="hidden sm:inline">Update Data</span>
-                        </button>
-                        
-                        <button onclick="exportToCSV()" class="flex items-center gap-1.5 text-sm px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors font-medium shadow-sm">
-                            <i data-lucide="download" class="w-4 h-4"></i><span class="hidden xl:inline">Export CSV</span>
-                        </button>
-                        
-                        <!-- TOMBOL BACKUP & RESTORE LOKAL -->
-                        <div class="flex items-center gap-1">
-                            <button onclick="backupLocalData()" class="flex items-center gap-1.5 text-sm px-3 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-colors font-medium shadow-sm" title="Download File Backup Lokal">
+                        <!-- Aksi Data Lokal -->
+                        <div class="flex gap-2 w-full md:w-auto">
+                            <button onclick="document.getElementById('restore-file-input').click()" class="flex-1 md:flex-none flex items-center justify-center gap-1.5 text-xs px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-colors font-bold shadow-sm border border-slate-200" title="Pulihkan Data Backup Lokal">
+                                <i data-lucide="upload-cloud" class="w-4 h-4"></i><span class="hidden xl:inline">Restore</span>
+                            </button>
+                            <input type="file" id="restore-file-input" accept=".json" class="hidden" onchange="restoreLocalData(event)" />
+                            
+                            <button onclick="backupLocalData()" class="flex-1 md:flex-none flex items-center justify-center gap-1.5 text-xs px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-colors font-bold shadow-sm border border-slate-200" title="Backup Lokal Riwayat Anda">
                                 <i data-lucide="save" class="w-4 h-4"></i><span class="hidden xl:inline">Backup</span>
                             </button>
-                            <button onclick="document.getElementById('restore-file-input').click()" class="flex items-center gap-1.5 text-sm px-3 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-colors font-medium shadow-sm" title="Upload File Backup Lokal">
-                                <i data-lucide="folder-up" class="w-4 h-4"></i><span class="hidden xl:inline">Restore</span>
+
+                            <button onclick="exportToCSV()" class="flex-1 md:flex-none flex items-center justify-center gap-1.5 text-xs px-4 py-2.5 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 hover:text-emerald-800 rounded-xl transition-colors font-bold shadow-sm border border-emerald-200" title="Unduh CSV Bulan Ini">
+                                <i data-lucide="download" class="w-4 h-4"></i><span class="hidden xl:inline">Bulan Ini</span>
                             </button>
-                            <!-- Hidden File Input untuk Restore -->
-                            <input type="file" id="restore-file-input" accept=".json" class="hidden" onchange="restoreLocalData(event)" />
                         </div>
                     </div>
                 </div>
 
                 <!-- Grid Kalender -->
-                <div class="flex-none">
-                    <div class="grid grid-cols-7 bg-slate-100 border-b border-slate-200 text-center text-xs font-bold text-slate-500 py-2">
-                        <div>Min</div><div>Sen</div><div>Sel</div><div>Rab</div><div>Kam</div><div>Jum</div><div>Sab</div>
-                    </div>
-                    <div id="calendar-grid" class="grid grid-cols-7 bg-slate-200 gap-px">
+                <div class="flex-none bg-slate-50/50 p-4 pb-0">
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                        <div class="grid grid-cols-7 bg-slate-50 border-b border-slate-100 text-center text-xs font-bold text-slate-400 py-3 uppercase tracking-wider">
+                            <div class="text-red-400">Min</div><div>Sen</div><div>Sel</div><div>Rab</div><div>Kam</div><div>Jum</div><div class="text-blue-400">Sab</div>
+                        </div>
+                        <div id="calendar-grid" class="grid grid-cols-7 bg-slate-100 gap-px">
+                            <!-- Sel kalender akan di-render di sini -->
+                        </div>
                     </div>
                 </div>
 
                 <!-- Daftar Riwayat pada Tanggal Terpilih -->
-                <div class="p-4 md:p-6 bg-slate-50/50 flex-1 overflow-auto border-t border-slate-200">
-                    <h3 class="font-bold text-slate-700 mb-4 flex items-center gap-2">
-                        <i data-lucide="list-checks" class="w-5 h-5 text-indigo-500"></i> 
-                        Data Absensi: <span id="selected-date-text" class="text-indigo-600 border-b-2 border-indigo-200"></span>
-                    </h3>
-                    
-                    <div id="day-records-container" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div class="p-6 md:p-8 flex-1 overflow-auto">
+                    <div class="flex items-center justify-between mb-5">
+                        <h3 class="font-extrabold text-slate-800 flex items-center gap-2.5 text-lg">
+                            <div class="w-2 h-6 bg-indigo-500 rounded-full"></div>
+                            Data <span id="selected-date-text" class="text-indigo-600"></span>
+                        </h3>
                     </div>
                     
-                    <div id="day-empty-state" class="hidden flex-col items-center justify-center text-slate-400 py-8">
-                        <i data-lucide="inbox" class="w-12 h-12 opacity-20 mb-3"></i>
-                        <p class="text-sm font-medium">Belum ada absen di hari ini.</p>
+                    <div id="day-records-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Data Card harian -->
+                    </div>
+                    
+                    <div id="day-empty-state" class="hidden flex-col items-center justify-center text-slate-400 py-12 bg-slate-50/50 rounded-2xl border-2 border-dashed border-slate-200">
+                        <i data-lucide="coffee" class="w-12 h-12 opacity-20 mb-3"></i>
+                        <p class="text-sm font-bold tracking-wide">Belum ada absen di hari ini.</p>
                     </div>
                 </div>
 
@@ -226,11 +256,11 @@
     <script type="module">
         lucide.createIcons();
 
-        // --- KONFIGURASI URL ---
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw3DDEcoST4zXOYA_8Xpmn37N_A_aHsUwTXxlDTGUVNwGX17JAMfM8g-zfSAoQhIQp-JA/exec';
+        // --- URL WEB APP GOOGLE APPS SCRIPT ---
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwxN5u84s6EYSqvWFGPeW6eh1YfD9FpDVkOh5_0daV3Fza3dSunjnAJzs8WqyGa47eEJQ/exec';
+        
+        // --- URL CSV DATA NAMA ---
         const NAMES_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8ACyi03DJ77mANO19x_hJV82Xs8rNBBLyT9IIGc1tgYGNrv9WMufjm940iEPx4QU6Eta6T8Ekv2-X/pub?gid=219192679&single=true&output=csv';
-        // URL Data Tabel Absensi yang Baru
-        const DATA_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8ACyi03DJ77mANO19x_hJV82Xs8rNBBLyT9IIGc1tgYGNrv9WMufjm940iEPx4QU6Eta6T8Ekv2-X/pub?gid=1592468045&single=true&output=csv';
 
         let records = JSON.parse(localStorage.getItem('absensi_records')) || [];
         let currentPhotoData = null;
@@ -280,7 +310,7 @@
             const nameSelect = document.getElementById('input-name');
             const activeNames = getActiveNames();
             const currentVal = nameSelect.value;
-            nameSelect.innerHTML = '<option value="">Pilih Nama...</option>';
+            nameSelect.innerHTML = '<option value="">Pilih Nama Pegawai...</option>';
             activeNames.forEach(name => {
                 const opt = document.createElement('option');
                 opt.value = name;
@@ -309,96 +339,8 @@
             }
         });
 
-        // --- MEMUAT DATA DARI CSV SPREADSHEET KE WEB ---
-        async function fetchCloudData() {
-            try {
-                const btn = document.getElementById('btn-sync');
-                const originalHtml = btn.innerHTML;
-                btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span class="hidden sm:inline">Memuat Data...</span>';
-                lucide.createIcons();
-
-                const response = await fetch(DATA_CSV_URL + '&t=' + new Date().getTime());
-                const csvText = await response.text();
-                
-                const cloudData = [];
-                const lines = csvText.split('\n');
-                
-                for (let i = 1; i < lines.length; i++) { 
-                    const line = lines[i].trim();
-                    if (!line) continue;
-                    
-                    const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(col => col.replace(/^"|"$/g, '').trim());
-                    
-                    if (cols.length >= 5) {
-                        let dateStr = cols[1];
-                        if (dateStr && dateStr.includes('/')) {
-                            const parts = dateStr.split('/');
-                            if (parts[0].length === 2 && parts[2].length === 4) {
-                                dateStr = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-                            } else if (parts[2].length === 2 && parts[0].length === 4) {
-                                dateStr = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
-                            }
-                        }
-                        
-                        let timeStr = cols[2];
-                        if (timeStr && timeStr.length > 5) {
-                            timeStr = timeStr.substring(0, 5);
-                        }
-
-                        cloudData.push({
-                            id: new Date().getTime() - i, 
-                            name: cols[0],
-                            date: dateStr, 
-                            time: timeStr, 
-                            status: cols[3],
-                            photo: cols[4], // Link Asli dari Drive / Cloud
-                            synced: true
-                        });
-                    }
-                }
-
-                const localRecords = JSON.parse(localStorage.getItem('absensi_records')) || [];
-                let mergedRecords = [...localRecords];
-
-                cloudData.forEach(cloudRec => {
-                    const isExist = mergedRecords.some(localRec => 
-                        localRec.name === cloudRec.name && 
-                        localRec.date === cloudRec.date && 
-                        localRec.time === cloudRec.time
-                    );
-
-                    if (!isExist) {
-                        mergedRecords.push(cloudRec);
-                    } else {
-                        const idx = mergedRecords.findIndex(localRec => 
-                            localRec.name === cloudRec.name && localRec.date === cloudRec.date && localRec.time === cloudRec.time
-                        );
-                        mergedRecords[idx] = cloudRec;
-                    }
-                });
-
-                mergedRecords.sort((a, b) => {
-                    const dtA = new Date(`${a.date}T${a.time}`);
-                    const dtB = new Date(`${b.date}T${b.time}`);
-                    return dtB - dtA;
-                });
-                
-                records = mergedRecords;
-                localStorage.setItem('absensi_records', JSON.stringify(records));
-                renderCalendar();
-                renderSelectedDay();
-                
-                btn.innerHTML = originalHtml;
-                lucide.createIcons();
-            } catch (error) {
-                console.error("Gagal load data dari URL CSV:", error);
-                const btn = document.getElementById('btn-sync');
-                btn.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4"></i><span class="hidden sm:inline">Update Data</span>';
-                lucide.createIcons();
-            }
-        }
-
-        // --- MODAL NAMA LENGKAP ---
+        // --- STREAMING_CHUNK:Logika Modal & Utilities... ---
+        // --- MODAL KELOLA NAMA LENGKAP ---
         window.openManageNamesModal = () => {
             document.getElementById('manage-names-modal').classList.remove('hidden');
             document.getElementById('manage-names-modal').classList.add('flex');
@@ -453,11 +395,11 @@
             }
             listContainer.innerHTML = activeNames.map(name => {
                 const isCustom = addedNames.includes(name);
-                const badge = isCustom ? '<span class="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full ml-2 font-semibold">Baru</span>' : '';
+                const badge = isCustom ? '<span class="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full ml-2 font-bold">Baru</span>' : '';
                 return `
-                <li class="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
-                    <span class="text-sm font-medium text-slate-700">${name} ${badge}</span>
-                    <button type="button" onclick="deleteName('${name}')" class="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-md transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                <li class="flex justify-between items-center bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
+                    <span class="text-sm font-bold text-slate-700">${name} ${badge}</span>
+                    <button type="button" onclick="deleteName('${name}')" class="text-slate-300 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                 </li>`;
             }).join('');
             lucide.createIcons();
@@ -470,16 +412,16 @@
             const iconEl = document.getElementById('notification-icon');
             msgEl.textContent = message;
             if (type === 'success') {
-                toast.className = 'fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-all transform duration-300 translate-y-0 opacity-100 bg-emerald-600 text-white';
+                toast.className = 'fixed top-6 right-6 z-50 px-5 py-4 rounded-2xl shadow-2xl shadow-emerald-200 flex items-center gap-3 transition-all transform duration-500 translate-y-0 opacity-100 bg-emerald-500 text-white';
                 iconEl.setAttribute('data-lucide', 'check-circle');
             } else {
-                toast.className = 'fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 transition-all transform duration-300 translate-y-0 opacity-100 bg-red-500 text-white';
+                toast.className = 'fixed top-6 right-6 z-50 px-5 py-4 rounded-2xl shadow-2xl shadow-red-200 flex items-center gap-3 transition-all transform duration-500 translate-y-0 opacity-100 bg-red-500 text-white';
                 iconEl.setAttribute('data-lucide', 'alert-circle');
             }
             lucide.createIcons();
             setTimeout(() => {
                 toast.classList.remove('translate-y-0', 'opacity-100');
-                toast.classList.add('translate-y-[-100%]', 'opacity-0');
+                toast.classList.add('translate-y-[-150%]', 'opacity-0');
             }, 3500);
         }
 
@@ -511,7 +453,7 @@
             document.getElementById('input-time-hour').value = hours24;
             document.getElementById('input-time-minute').value = minutes;
             
-            document.getElementById('current-date-display').textContent = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            document.getElementById('current-date-display').textContent = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
         }
 
         window.openModal = (src) => {
@@ -527,6 +469,7 @@
             document.body.style.overflow = 'auto';
         };
 
+        // --- STREAMING_CHUNK:Upload dan Resize Image... ---
         window.handlePhotoUpload = (e) => {
             const file = e.target.files[0];
             if (file) {
@@ -537,7 +480,8 @@
                     img.onload = () => {
                         const canvas = document.createElement('canvas');
                         const ctx = canvas.getContext('2d');
-                        const MAX_WIDTH = 400; 
+                        // Kompresi ketat agar ringan saat Post
+                        const MAX_WIDTH = 500; 
                         let width = img.width;
                         let height = img.height;
                         if (width > MAX_WIDTH) {
@@ -547,7 +491,7 @@
                         canvas.width = width;
                         canvas.height = height;
                         ctx.drawImage(img, 0, 0, width, height);
-                        currentPhotoData = canvas.toDataURL('image/jpeg', 0.5); 
+                        currentPhotoData = canvas.toDataURL('image/jpeg', 0.6); 
                         document.getElementById('preview-img').src = currentPhotoData;
                         document.getElementById('photo-placeholder').classList.add('hidden');
                         document.getElementById('photo-preview').classList.remove('hidden');
@@ -565,7 +509,7 @@
         };
 
         window.handleDelete = (id) => {
-            if (confirm('Hapus histori absen ini dari daftar lokal? (Data di spreadsheet harus dihapus manual)')) {
+            if (confirm('Hapus riwayat absen ini dari daftar lokal?')) {
                 records = records.filter(r => r.id !== id);
                 localStorage.setItem('absensi_records', JSON.stringify(records));
                 renderCalendar(); 
@@ -581,16 +525,8 @@
             editingId = id;
             
             document.getElementById('input-name').value = rec.name;
-            
-            const statusSelect = document.getElementById('input-status');
-            if (!Array.from(statusSelect.options).some(opt => opt.value === rec.status)) {
-                const opt = document.createElement('option');
-                opt.value = rec.status;
-                opt.textContent = rec.status;
-                statusSelect.appendChild(opt);
-            }
-            statusSelect.value = rec.status;
-            
+            document.getElementById('input-shift').value = rec.shift || '';
+            document.getElementById('input-status').value = rec.status;
             document.getElementById('input-date').value = rec.date;
             
             const [h, m] = rec.time.split(':');
@@ -608,10 +544,10 @@
                 document.getElementById('photo-preview').classList.add('hidden');
             }
 
-            document.getElementById('form-title').innerHTML = '<i data-lucide="edit" class="w-5 h-5 text-amber-500"></i> Edit Absensi';
+            document.getElementById('form-title').innerHTML = '<div class="p-2 bg-amber-100 rounded-xl text-amber-600"><i data-lucide="edit" class="w-5 h-5"></i></div> Mode Edit Absensi';
             const btn = document.getElementById('submit-btn');
-            btn.innerHTML = '<i data-lucide="save" class="w-5 h-5"></i> <span>Update Absen</span>';
-            btn.className = "w-full py-3 px-4 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl shadow-sm hover:shadow transition-all flex items-center justify-center gap-2";
+            btn.innerHTML = '<i data-lucide="save" class="w-5 h-5"></i> <span>Update Perubahan</span>';
+            btn.className = "w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-extrabold text-sm tracking-wide rounded-2xl shadow-lg shadow-amber-200 hover:shadow-amber-300 hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center gap-2";
             
             document.getElementById('cancel-edit-btn').classList.remove('hidden');
             document.getElementById('cancel-edit-btn').classList.add('flex');
@@ -623,14 +559,15 @@
         window.cancelEdit = () => {
             editingId = null;
             document.getElementById('input-name').value = '';
+            document.getElementById('input-shift').value = '';
             document.getElementById('input-status').value = 'Masuk';
             removePhoto();
             setDateTimeDefaults();
             
-            document.getElementById('form-title').innerHTML = '<i data-lucide="user-plus" class="w-5 h-5 text-indigo-500"></i> Isi Absensi';
+            document.getElementById('form-title').innerHTML = '<div class="p-2 bg-indigo-100 rounded-xl text-indigo-600"><i data-lucide="fingerprint" class="w-5 h-5"></i></div> Form Presensi';
             const btn = document.getElementById('submit-btn');
-            btn.innerHTML = '<i data-lucide="check-circle" class="w-5 h-5"></i> <span>Simpan Absen</span>';
-            btn.className = "w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-sm hover:shadow transition-all flex items-center justify-center gap-2";
+            btn.innerHTML = '<i data-lucide="send" class="w-5 h-5"></i> <span>KIRIM DATA ABSEN</span>';
+            btn.className = "w-full py-4 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-extrabold text-sm tracking-wide rounded-2xl shadow-lg shadow-indigo-200 hover:shadow-indigo-300 hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center gap-2";
             
             document.getElementById('cancel-edit-btn').classList.add('hidden');
             document.getElementById('cancel-edit-btn').classList.remove('flex');
@@ -638,6 +575,7 @@
             lucide.createIcons();
         };
 
+        // --- STREAMING_CHUNK:Logika Calendar Interaktif... ---
         // --- CALENDAR LOGIC ---
         window.prevMonth = () => {
             currentMonthDate.setMonth(currentMonthDate.getMonth() - 1);
@@ -671,7 +609,7 @@
             const todayStr = new Date().toISOString().split('T')[0];
 
             for (let i = 0; i < firstDay; i++) {
-                grid.innerHTML += `<div class="bg-slate-50 border-t border-transparent h-20 sm:h-[90px]"></div>`;
+                grid.innerHTML += `<div class="bg-white border-t border-transparent h-24"></div>`;
             }
 
             for (let day = 1; day <= daysInMonth; day++) {
@@ -684,33 +622,30 @@
                 
                 let indicators = '';
                 if (dayRecords.length > 0) {
-                    const limit = 4;
+                    const limit = 3;
                     const showRecs = dayRecords.slice(0, limit);
                     
-                    indicators += `<div class="flex -space-x-1.5 justify-center mt-1 sm:mt-1.5 w-full px-1">`;
+                    indicators += `<div class="flex -space-x-2 justify-center mt-2 w-full px-1">`;
                     showRecs.forEach(r => {
                         const ringColor = r.status === 'Masuk' ? 'ring-emerald-400' : 'ring-red-400';
-                        
-                        // MENCEGAH GAMBAR PECAH DI KALENDER KETIKA MEMUAT DARI SPREADSHEET
                         if(r.photo && r.photo.startsWith('data:image')) {
-                             indicators += `<img src="${r.photo}" class="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover ring-2 ${ringColor} shadow-sm bg-white" title="${r.name} (${r.status})" />`;
+                             indicators += `<img src="${r.photo}" class="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover ring-2 ${ringColor} shadow-md bg-white hover:z-20 hover:scale-125 transition-transform" title="${r.name} (${r.status})" />`;
                         } else {
-                             // JIKA DARI CLOUD / SPREADSHEET, MUNCULKAN INISIAL NAMA SAJA
                              const initial = r.name ? r.name.charAt(0).toUpperCase() : '?';
-                             indicators += `<div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-white ring-2 ${ringColor} shadow-sm flex items-center justify-center text-[10px] font-bold text-slate-600" title="${r.name} (${r.status})">${initial}</div>`;
+                             indicators += `<div class="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-slate-50 ring-2 ${ringColor} shadow-md flex items-center justify-center text-[10px] font-black text-slate-500 hover:z-20 hover:scale-125 transition-transform" title="${r.name} (${r.status})">${initial}</div>`;
                         }
                     });
                     if (dayRecords.length > limit) {
-                        indicators += `<div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-slate-100 text-[9px] font-bold flex items-center justify-center ring-2 ring-slate-200 text-slate-600 z-10">+${dayRecords.length - limit}</div>`;
+                        indicators += `<div class="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-slate-100 text-[10px] font-black flex items-center justify-center ring-2 ring-white text-slate-500 z-10 shadow-sm">+${dayRecords.length - limit}</div>`;
                     }
                     indicators += `</div>`;
                 }
 
-                let cellClass = `bg-white h-20 sm:h-[90px] p-1 flex flex-col items-center border-t-[3px] transition-all cursor-pointer hover:bg-indigo-50/60 `;
-                cellClass += isSelected ? 'border-t-indigo-500 bg-indigo-50 shadow-inner' : 'border-t-transparent';
+                let cellClass = `bg-white h-24 p-1.5 flex flex-col items-center border-t-[4px] transition-all cursor-pointer hover:bg-indigo-50/40 relative `;
+                cellClass += isSelected ? 'border-t-indigo-500 bg-indigo-50/50 shadow-inner' : 'border-t-transparent';
                 
-                let textClass = `text-sm font-semibold w-7 h-7 flex items-center justify-center rounded-full mt-0.5 `;
-                textClass += isToday ? 'bg-indigo-600 text-white' : 'text-slate-700';
+                let textClass = `text-sm font-bold w-8 h-8 flex items-center justify-center rounded-full mt-0.5 `;
+                textClass += isToday ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200' : 'text-slate-600';
 
                 grid.innerHTML += `
                     <div onclick="selectDate('${dateStr}')" class="${cellClass}">
@@ -724,17 +659,18 @@
             const remainder = totalCells % 7;
             if (remainder !== 0) {
                 for (let i = 0; i < 7 - remainder; i++) {
-                    grid.innerHTML += `<div class="bg-slate-50 border-t border-transparent h-20 sm:h-[90px]"></div>`;
+                    grid.innerHTML += `<div class="bg-white border-t border-transparent h-24"></div>`;
                 }
             }
         }
 
+        // --- RENDER REKAP HARIAN (List Data di Bawah Kalender) ---
         function renderSelectedDay() {
             const container = document.getElementById('day-records-container');
             const emptyState = document.getElementById('day-empty-state');
             
             const d = new Date(selectedDateStr);
-            const formattedDate = d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+            const formattedDate = d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
             document.getElementById('selected-date-text').textContent = formattedDate;
 
             const dayRecords = records.filter(r => r.date === selectedDateStr);
@@ -749,9 +685,7 @@
                 
                 const groupedRecords = {};
                 dayRecords.forEach(r => {
-                    if (!groupedRecords[r.name]) {
-                        groupedRecords[r.name] = [];
-                    }
+                    if (!groupedRecords[r.name]) groupedRecords[r.name] = [];
                     groupedRecords[r.name].push(r);
                 });
                 
@@ -760,54 +694,35 @@
                     userRecs.sort((a, b) => a.time.localeCompare(b.time));
 
                     const statusesHtml = userRecs.map(r => {
-                        const syncIcon = r.synced === false 
-                            ? '<i data-lucide="wifi-off" class="w-3.5 h-3.5 inline text-red-400 ml-1" title="Belum di-update ke Spreadsheet"></i>' 
-                            : '<i data-lucide="check-circle-2" class="w-3.5 h-3.5 inline text-emerald-500 ml-1" title="Tersimpan di Spreadsheet"></i>';
-
                         const statusBadgeColor = r.status === 'Masuk' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700';
+                        const shiftBadge = r.shift && r.shift !== '-' ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200 shadow-sm">${r.shift}</span>` : '';
 
-                        // LOGIKA PEMISAHAN TAMPILAN FOTO (MENCEGAH GAMBAR PECAH DARI GOOGLE DRIVE)
                         let photoElement = '';
                         if (r.photo && r.photo.startsWith('data:image')) {
-                            // Tampil Gambar normal Jika masih tersimpan lokal (sebelum dihapus browser)
-                            photoElement = `<img src="${r.photo}" onclick="openModal(this.src)" class="w-10 h-10 rounded-lg object-cover cursor-pointer hover:opacity-80 bg-slate-200 border border-slate-200 flex-shrink-0" title="Foto Lokal (Belum Tersinkron)" />`;
-                        } else if (r.photo && r.photo.startsWith('http')) {
-                            // Tampil Tombol Buka Link jika berupa data dari Spreadsheet / Google Drive
-                            photoElement = `
-                                <a href="${r.photo}" target="_blank" class="flex flex-col items-center justify-center w-10 h-10 rounded-lg bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 transition-colors cursor-pointer flex-shrink-0" title="Buka Foto di Google Drive">
-                                    <i data-lucide="external-link" class="w-5 h-5 text-indigo-500"></i>
-                                </a>
-                            `;
+                            photoElement = `<img src="${r.photo}" onclick="openModal(this.src)" class="w-12 h-12 rounded-xl object-cover cursor-pointer hover:scale-105 transition-transform bg-slate-100 border border-slate-200 shadow-sm flex-shrink-0" />`;
                         } else {
-                            photoElement = `<div class="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center flex-shrink-0"><i data-lucide="image-off" class="w-5 h-5 text-slate-400"></i></div>`;
+                            photoElement = `<div class="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center flex-shrink-0 shadow-sm"><i data-lucide="image-off" class="w-5 h-5 text-slate-300"></i></div>`;
                         }
 
-                        // Membuat Format Text Drive khusus (seperti yg Anda minta: data absen/Nama-Tanggal-MASUK.jpg)
-                        const customDriveText = (r.photo && r.photo.startsWith('http')) 
-                            ? `<a href="${r.photo}" target="_blank" class="text-[10px] text-blue-600 hover:underline flex items-center gap-1 mt-0.5 truncate max-w-full" title="Buka File: data absen/${r.name}-${r.date}-${r.status.toUpperCase()}.jpg">
-                                 <i data-lucide="link" class="w-3 h-3 flex-shrink-0"></i> <span class="truncate">data absen/${r.name}-${r.date}-${r.status.toUpperCase()}.jpg</span>
-                               </a>` 
-                            : '';
-
                         return `
-                        <div class="flex items-start justify-between mt-2 group/item p-2 rounded-lg bg-slate-50 border border-slate-100">
-                            <div class="flex items-start gap-3 w-full overflow-hidden">
+                        <div class="flex items-start justify-between mt-2.5 group/item p-3 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-md transition-all">
+                            <div class="flex items-center gap-3.5 w-full">
                                 ${photoElement}
-                                <div class="flex flex-col items-start gap-0.5 flex-1 min-w-0">
-                                    <div class="flex items-center gap-2">
-                                        <span class="px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${statusBadgeColor}">${r.status}</span>
-                                        <div class="flex items-center gap-1 text-xs font-medium text-slate-700">
-                                            <i data-lucide="clock" class="w-3.5 h-3.5 text-indigo-500"></i> ${r.time} ${syncIcon}
-                                        </div>
+                                <div class="flex flex-col items-start gap-1 flex-1">
+                                    <div class="flex flex-wrap items-center gap-1.5">
+                                        <span class="px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${statusBadgeColor} shadow-sm border border-white/50">${r.status}</span>
+                                        ${shiftBadge}
                                     </div>
-                                    ${customDriveText}
+                                    <div class="flex items-center gap-1.5 text-xs font-bold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md">
+                                        <i data-lucide="clock" class="w-3.5 h-3.5 text-indigo-400"></i> ${r.time}
+                                    </div>
                                 </div>
                             </div>
-                            <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-all ml-2 flex-shrink-0">
-                                <button onclick="editRecord(${r.id})" class="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md" title="Edit Data">
+                            <div class="flex flex-col gap-1 ml-2">
+                                <button onclick="editRecord(${r.id})" class="p-2 text-slate-300 hover:text-amber-500 hover:bg-amber-50 rounded-xl transition-all" title="Edit Data">
                                     <i data-lucide="edit-3" class="w-4 h-4"></i>
                                 </button>
-                                <button onclick="handleDelete(${r.id})" class="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md" title="Hapus Lokal">
+                                <button onclick="handleDelete(${r.id})" class="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all" title="Hapus Lokal">
                                     <i data-lucide="trash-2" class="w-4 h-4"></i>
                                 </button>
                             </div>
@@ -815,11 +730,11 @@
                     `}).join('');
 
                     return `
-                        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative group flex flex-col gap-2 hover:border-indigo-200 transition-colors">
-                            <h3 class="font-bold text-slate-800 text-sm truncate flex items-center gap-2 border-b border-slate-100 pb-2">
-                                <i data-lucide="user" class="w-4 h-4 text-slate-400"></i> ${name}
+                        <div class="bg-slate-50/50 p-4 rounded-3xl border border-slate-200 shadow-sm">
+                            <h3 class="font-bold text-slate-700 text-sm truncate flex items-center gap-2 mb-1 px-1">
+                                <i data-lucide="user-circle" class="w-4 h-4 text-indigo-400"></i> ${name}
                             </h3>
-                            <div class="flex flex-col gap-1 w-full">
+                            <div class="flex flex-col w-full">
                                 ${statusesHtml}
                             </div>
                         </div>
@@ -830,10 +745,12 @@
             }
         }
 
+        // --- STREAMING_CHUNK:Logika Pengiriman Data (POST)... ---
         // --- SUBMIT ABSEN ---
         document.getElementById('attendance-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const name = document.getElementById('input-name').value;
+            const shift = document.getElementById('input-shift').value;
             const date = document.getElementById('input-date').value;
             const hour = document.getElementById('input-time-hour').value;
             const minute = document.getElementById('input-time-minute').value;
@@ -843,15 +760,17 @@
             const btn = document.getElementById('submit-btn');
 
             if (!name) return showNotification('Nama Lengkap harus dipilih!', 'error');
+            if (!shift) return showNotification('Pilih Shift Kerja Anda!', 'error');
             if (!currentPhotoData) return showNotification('Foto bukti wajib dilampirkan!', 'error');
 
             const originalHtml = btn.innerHTML;
-            btn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> <span>Menyimpan...</span>';
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> <span>MENGIRIM DATA...</span>';
             btn.disabled = true;
 
             try {
                 const params = new URLSearchParams();
                 params.append('nama', name);
+                params.append('shift', shift);
                 params.append('tanggal', date);
                 params.append('waktu', time);
                 params.append('status', status);
@@ -875,7 +794,7 @@
                     params.append('mimeType', 'image/jpeg');
                 }
 
-                // PENGIRIMAN ANTI-GAGAL: Kirim langsung dengan 'no-cors' dan abaikan error bacaan browser
+                // Kirim langsung dengan 'no-cors' agar tidak terblokir browser
                 await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
                     mode: 'no-cors',
@@ -883,17 +802,16 @@
                     body: params.toString()
                 });
                 
-                // Asumsi 100% Sukses masuk ke Google Sheet jika tidak ada gangguan jaringan terputus
                 if (editingId) {
                     const idx = records.findIndex(r => r.id === editingId);
                     if(idx !== -1) {
-                        records[idx] = { ...records[idx], name, date, time, status, photo: currentPhotoData, synced: true };
+                        records[idx] = { ...records[idx], name, shift, date, time, status, photo: currentPhotoData, synced: true };
                     }
-                    showNotification('Data absensi berhasil diupdate ke Spreadsheet!', 'success');
+                    showNotification('Data absensi berhasil diupdate!', 'success');
                 } else {
-                    const newRec = { id: Date.now(), name, date, time, status, photo: currentPhotoData, synced: true };
+                    const newRec = { id: Date.now(), name, shift, date, time, status, photo: currentPhotoData, synced: true };
                     records.unshift(newRec); 
-                    showNotification('Absen berhasil disimpan langsung ke Spreadsheet!', 'success');
+                    showNotification('Absen berhasil disimpan ke Spreadsheet!', 'success');
                 }
                 
                 localStorage.setItem('absensi_records', JSON.stringify(records));
@@ -903,7 +821,6 @@
                 currentMonthDate.setMonth(dateObj.getMonth());
                 currentMonthDate.setFullYear(dateObj.getFullYear());
                 
-                await fetchCloudData();
                 renderCalendar();
                 renderSelectedDay();
                 cancelEdit();
@@ -911,15 +828,14 @@
             } catch (err) {
                 console.error(err);
                 
-                // Hanya akan masuk ke sini jika HP/PC benar-benar mati internet (Offline)
                 if (editingId) {
                     const idx = records.findIndex(r => r.id === editingId);
-                    if(idx !== -1) records[idx] = { ...records[idx], name, date, time, status, photo: currentPhotoData, synced: false };
-                    showNotification('Tidak ada internet! Data diamankan di HP.', 'error');
+                    if(idx !== -1) records[idx] = { ...records[idx], name, shift, date, time, status, photo: currentPhotoData, synced: false };
+                    showNotification('Tersimpan di histori lokal.', 'success');
                 } else {
-                    const newRec = { id: Date.now(), name, date, time, status, photo: currentPhotoData, synced: false };
+                    const newRec = { id: Date.now(), name, shift, date, time, status, photo: currentPhotoData, synced: false };
                     records.unshift(newRec); 
-                    showNotification('Tidak ada internet! Data diamankan di HP.', 'error');
+                    showNotification('Tersimpan di histori lokal.', 'success');
                 }
                 
                 localStorage.setItem('absensi_records', JSON.stringify(records));
@@ -935,89 +851,6 @@
                 lucide.createIcons();
             }
         });
-
-        // --- SINKRONISASI MANUAL ---
-        window.syncData = async () => {
-            const btn = document.getElementById('btn-sync');
-            const originalHtml = btn.innerHTML;
-            btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span class="hidden sm:inline">Memuat...</span>';
-            btn.disabled = true;
-            lucide.createIcons();
-
-            const unsyncedRecords = records.filter(r => r.synced === false);
-            let successCount = 0;
-            
-            for (let i = 0; i < unsyncedRecords.length; i++) {
-                const rec = unsyncedRecords[i];
-                try {
-                    const params = new URLSearchParams();
-                    params.append('action', 'insert');
-                    params.append('nama', rec.name);
-                    params.append('tanggal', rec.date);
-                    params.append('waktu', rec.time);
-                    params.append('status', rec.status);
-                    
-                    if (rec.photo && rec.photo.startsWith('http')) {
-                        params.append('existingPhotoUrl', rec.photo);
-                    } else {
-                        params.append('photoBase64', rec.photo ? rec.photo.split(',')[1] : '');
-                        params.append('mimeType', 'image/jpeg');
-                    }
-
-                    // PENGIRIMAN SINKRONISASI ANTI-GAGAL
-                    await fetch(APPS_SCRIPT_URL, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: params.toString()
-                    });
-                    
-                    const index = records.findIndex(r => r.id === rec.id);
-                    if (index !== -1) {
-                        records[index].synced = true;
-                    }
-                    successCount++;
-                } catch (err) {
-                    console.error('Gagal mensinkronkan data:', rec.name, err);
-                }
-            }
-
-            await fetchCloudData();
-
-            btn.innerHTML = originalHtml;
-            btn.disabled = false;
-            lucide.createIcons();
-
-            if (successCount > 0) {
-                showNotification(`${successCount} data berhasil disinkronkan ke Spreadsheet!`, 'success');
-            } else {
-                showNotification('Memuat dari CSV selesai.', 'success');
-            }
-        };
-
-        // --- EXPORT CSV ---
-        window.exportToCSV = () => {
-            const year = currentMonthDate.getFullYear();
-            const month = String(currentMonthDate.getMonth() + 1).padStart(2, '0');
-            const prefix = `${year}-${month}`; 
-
-            const monthRecords = records.filter(r => r.date.startsWith(prefix));
-
-            if (monthRecords.length === 0) {
-                showNotification('Tidak ada data pada bulan ini untuk diekspor.', 'error');
-                return;
-            }
-
-            const rows = [["Nama Lengkap", "Tanggal", "Waktu", "Status"]];
-            monthRecords.forEach(r => rows.push([r.name, r.date, r.time, r.status]));
-            const csv = rows.map(r => r.join(',')).join('\n');
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `rekap_absensi_${prefix}.csv`;
-            a.click();
-        };
 
         // --- BACKUP DATA LOKAL ---
         window.backupLocalData = () => {
@@ -1046,7 +879,6 @@
                     const importedData = JSON.parse(event.target.result);
                     if (!Array.isArray(importedData)) throw new Error("Format JSON tidak valid");
 
-                    // Gabungkan data impor dengan data lokal (hindari duplikat id)
                     const existingIds = new Set(records.map(r => r.id));
                     let addedCount = 0;
                     
@@ -1058,7 +890,6 @@
                         }
                     });
 
-                    // Urutkan ulang data terbaru di atas
                     records.sort((a, b) => {
                         const dtA = new Date(`${a.date}T${a.time}`);
                         const dtB = new Date(`${b.date}T${b.time}`);
@@ -1071,17 +902,39 @@
                     showNotification(`Restore selesai! ${addedCount} riwayat ditambahkan.`, 'success');
                 } catch (err) {
                     console.error(err);
-                    showNotification('Gagal membaca file backup. Pastikan itu file JSON yang valid.', 'error');
+                    showNotification('Gagal membaca file backup.', 'error');
                 }
-                e.target.value = ''; // Reset input agar bisa dipakai lagi
+                e.target.value = ''; 
             };
             reader.readAsText(file);
         };
 
+        // --- EXPORT CSV ---
+        window.exportToCSV = () => {
+            const year = currentMonthDate.getFullYear();
+            const month = String(currentMonthDate.getMonth() + 1).padStart(2, '0');
+            const prefix = `${year}-${month}`; 
+
+            const monthRecords = records.filter(r => r.date.startsWith(prefix));
+
+            if (monthRecords.length === 0) {
+                showNotification('Tidak ada data pada bulan ini untuk diekspor.', 'error');
+                return;
+            }
+
+            const rows = [["Nama Lengkap", "Shift", "Tanggal", "Waktu", "Status"]];
+            monthRecords.forEach(r => rows.push([r.name, r.shift || '-', r.date, r.time, r.status]));
+            const csv = rows.map(r => r.join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `rekap_absensi_${prefix}.csv`;
+            a.click();
+        };
+
         // Inisialisasi awal
-        fetchNames().then(() => {
-            fetchCloudData();
-        });
+        fetchNames();
         setDateTimeDefaults();
         renderCalendar();
         renderSelectedDay();
