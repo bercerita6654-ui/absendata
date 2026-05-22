@@ -91,6 +91,16 @@
                         </select>
                     </div>
 
+                    <!-- Input Pilihan Shift Kerja -->
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Shift Kerja</label>
+                        <select id="input-shift" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white cursor-pointer">
+                            <option value="Shift 1 (Pagi)">Shift 1 (Pagi)</option>
+                            <option value="Shift 2 (Siang)">Shift 2 (Siang)</option>
+                            <option value="Shift 3 (Malam)">Shift 3 (Malam)</option>
+                        </select>
+                    </div>
+
                     <!-- Input Status Kehadiran -->
                     <div>
                         <label class="block text-sm font-semibold text-slate-700 mb-1">Status Kehadiran</label>
@@ -171,14 +181,26 @@
                             <button onclick="nextMonth()" class="p-1.5 rounded-md hover:bg-slate-100 text-slate-600 transition-colors"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
                         </div>
                         
-                        <!-- TOMBOL UPDATE DATA SINKRONISASI -->
+                        <!-- TOMBOL SINKRONISASI & UPDATE DATA -->
                         <button id="btn-sync" onclick="syncData()" class="flex items-center gap-1.5 text-sm px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium shadow-sm" title="Muat & Sinkronkan data ke Spreadsheet">
                             <i data-lucide="refresh-cw" class="w-4 h-4"></i><span class="hidden sm:inline">Update Data</span>
                         </button>
                         
                         <button onclick="exportToCSV()" class="flex items-center gap-1.5 text-sm px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors font-medium shadow-sm">
-                            <i data-lucide="download" class="w-4 h-4"></i><span class="hidden sm:inline">Export CSV</span>
+                            <i data-lucide="download" class="w-4 h-4"></i><span class="hidden xl:inline">Export CSV</span>
                         </button>
+                        
+                        <!-- TOMBOL BACKUP & RESTORE LOKAL -->
+                        <div class="flex items-center gap-1">
+                            <button onclick="backupLocalData()" class="flex items-center gap-1.5 text-sm px-3 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-colors font-medium shadow-sm" title="Download File Backup Lokal">
+                                <i data-lucide="save" class="w-4 h-4"></i><span class="hidden xl:inline">Backup</span>
+                            </button>
+                            <button onclick="document.getElementById('restore-file-input').click()" class="flex items-center gap-1.5 text-sm px-3 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-colors font-medium shadow-sm" title="Upload File Backup Lokal">
+                                <i data-lucide="folder-up" class="w-4 h-4"></i><span class="hidden xl:inline">Restore</span>
+                            </button>
+                            <!-- Hidden File Input untuk Restore -->
+                            <input type="file" id="restore-file-input" accept=".json" class="hidden" onchange="restoreLocalData(event)" />
+                        </div>
                     </div>
                 </div>
 
@@ -188,6 +210,7 @@
                         <div>Min</div><div>Sen</div><div>Sel</div><div>Rab</div><div>Kam</div><div>Jum</div><div>Sab</div>
                     </div>
                     <div id="calendar-grid" class="grid grid-cols-7 bg-slate-200 gap-px">
+                        <!-- Sel kalender akan di-render di sini -->
                     </div>
                 </div>
 
@@ -199,6 +222,7 @@
                     </h3>
                     
                     <div id="day-records-container" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <!-- Kartu rekap harian -->
                     </div>
                     
                     <div id="day-empty-state" class="hidden flex-col items-center justify-center text-slate-400 py-8">
@@ -214,9 +238,10 @@
     <script type="module">
         lucide.createIcons();
 
-        // --- URL WEB APP GOOGLE APPS SCRIPT ---
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwuXcmo9JjYqeIOJb38FUBFOLydVxjZoY-jnT-Qrnuv5CVqQV7a7Uzk4mglMCxUkTekEQ/exec';
+        // --- KONFIGURASI URL ---
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbys8VukdBSnI3J9pQVXYTTLlYe_N4FySM89iW5ReoypdRS8FjQrxhwqMthOdi2puntYbg/exec';
         const NAMES_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8ACyi03DJ77mANO19x_hJV82Xs8rNBBLyT9IIGc1tgYGNrv9WMufjm940iEPx4QU6Eta6T8Ekv2-X/pub?gid=219192679&single=true&output=csv';
+        // URL database CSV Google Sheet publik Anda
         const DATA_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8ACyi03DJ77mANO19x_hJV82Xs8rNBBLyT9IIGc1tgYGNrv9WMufjm940iEPx4QU6Eta6T8Ekv2-X/pub?gid=1592468045&single=true&output=csv';
 
         let records = JSON.parse(localStorage.getItem('absensi_records')) || [];
@@ -233,6 +258,18 @@
         let nameDataMap = {}; 
         let addedNames = JSON.parse(localStorage.getItem('added_names')) || []; 
         let hiddenNames = JSON.parse(localStorage.getItem('hidden_names')) || []; 
+
+        // Fungsi mengubah URL Drive murni menjadi link foto yang bisa ditampilkan di Web
+        function getEmbeddableUrl(url) {
+            if (!url) return '';
+            if (url.startsWith('data:image')) return url; // Format gambar base64
+            
+            const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+            if (match && match[1]) {
+                return `https://drive.google.com/uc?id=${match[1]}`;
+            }
+            return url;
+        }
 
         async function fetchNames() {
             try {
@@ -296,7 +333,6 @@
             }
         });
 
-        // --- MEMUAT DATA DARI SPREADSHEET SECARA AMAN ---
         async function fetchCloudData() {
             try {
                 const btn = document.getElementById('btn-sync');
@@ -304,6 +340,7 @@
                 btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span class="hidden sm:inline">Memuat Data...</span>';
                 lucide.createIcons();
 
+                // Membaca langsung dari CSV Publik
                 const response = await fetch(DATA_CSV_URL + '&t=' + new Date().getTime());
                 const csvText = await response.text();
                 
@@ -316,18 +353,18 @@
                     
                     const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(col => col.replace(/^"|"$/g, '').trim());
                     
-                    if (cols.length >= 5) {
-                        let dateStr = cols[1];
+                    if (cols.length >= 6) {
+                        let dateStr = cols[2];
                         if (dateStr && dateStr.includes('/')) {
                             const parts = dateStr.split('/');
-                            if (parts[0].length === 2 && parts[2].length === 4) {
+                            if (parts[2] && parts[2].length === 4) {
                                 dateStr = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-                            } else if (parts[2].length === 2 && parts[0].length === 4) {
+                            } else if (parts[0] && parts[0].length === 4) {
                                 dateStr = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
                             }
                         }
                         
-                        let timeStr = cols[2];
+                        let timeStr = cols[3];
                         if (timeStr && timeStr.length > 5) {
                             timeStr = timeStr.substring(0, 5);
                         }
@@ -335,15 +372,17 @@
                         cloudData.push({
                             id: new Date().getTime() - i, 
                             name: cols[0],
+                            shift: cols[1],
                             date: dateStr, 
                             time: timeStr, 
-                            status: cols[3],
-                            photo: cols[4], // Link Asli dari Drive / Cloud
+                            status: cols[4],
+                            photo: cols[5], 
                             synced: true
                         });
                     }
                 }
 
+                // Menggabungkan data cloud tanpa menimpa data offline lokal yang belum sinkron
                 const localRecords = JSON.parse(localStorage.getItem('absensi_records')) || [];
                 let mergedRecords = [...localRecords];
 
@@ -385,7 +424,7 @@
             }
         }
 
-        // --- MODAL NAMA LENGKAP ---
+        // --- MODAL KELOLA NAMA ---
         window.openManageNamesModal = () => {
             document.getElementById('manage-names-modal').classList.remove('hidden');
             document.getElementById('manage-names-modal').classList.add('flex');
@@ -493,7 +532,6 @@
             const dd = String(now.getDate()).padStart(2, '0');
             document.getElementById('input-date').value = `${yyyy}-${mm}-${dd}`;
             
-            // Set Waktu di Dropdown
             const hours24 = String(now.getHours()).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
             document.getElementById('input-time-hour').value = hours24;
@@ -579,6 +617,11 @@
             }
             statusSelect.value = rec.status;
             
+            // Set Shift
+            if (rec.shift) {
+                document.getElementById('input-shift').value = rec.shift;
+            }
+            
             document.getElementById('input-date').value = rec.date;
             
             const [h, m] = rec.time.split(':');
@@ -587,7 +630,6 @@
 
             currentPhotoData = rec.photo;
             
-            // Tampilkan foto jika tersimpan lokal, jika link gdrive tunjukkan placeholder
             if (currentPhotoData && currentPhotoData.startsWith('data:image')) {
                 document.getElementById('preview-img').src = currentPhotoData;
                 document.getElementById('photo-placeholder').classList.add('hidden');
@@ -680,9 +722,14 @@
                     showRecs.forEach(r => {
                         const ringColor = r.status === 'Masuk' ? 'ring-emerald-400' : 'ring-red-400';
                         
-                        // Gunakan inisial nama jika data dari spreadsheet agar kalender tidak rusak
-                        const initial = r.name ? r.name.charAt(0).toUpperCase() : '?';
-                        indicators += `<div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-white ring-2 ${ringColor} shadow-sm flex items-center justify-center text-[10px] font-bold text-slate-600" title="${r.name} (${r.status})">${initial}</div>`;
+                        // Mencegah gambar rusak/pecah dari Google Drive
+                        if(r.photo && r.photo.startsWith('data:image')) {
+                             indicators += `<img src="${r.photo}" class="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover ring-2 ${ringColor} shadow-sm bg-white" title="${r.name} (${r.status})" />`;
+                        } else {
+                             // Jika dari Spreadsheet, tampilkan inisial nama bulat
+                             const initial = r.name ? r.name.charAt(0).toUpperCase() : '?';
+                             indicators += `<div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-white ring-2 ${ringColor} shadow-sm flex items-center justify-center text-[10px] font-bold text-slate-600" title="${r.name} (${r.status})">${initial}</div>`;
+                        }
                     });
                     if (dayRecords.length > limit) {
                         indicators += `<div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-slate-100 text-[9px] font-bold flex items-center justify-center ring-2 ring-slate-200 text-slate-600 z-10">+${dayRecords.length - limit}</div>`;
@@ -750,13 +797,13 @@
 
                         const statusBadgeColor = r.status === 'Masuk' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700';
 
-                        // LOGIKA PEMISAHAN TAMPILAN FOTO (MENCEGAH GAMBAR PECAH)
+                        // Menyisipkan visual file photo (Link google drive atau base64)
                         let photoElement = '';
                         if (r.photo && r.photo.startsWith('data:image')) {
                             photoElement = `<img src="${r.photo}" onclick="openModal(this.src)" class="w-10 h-10 rounded-lg object-cover cursor-pointer hover:opacity-80 bg-slate-200 border border-slate-200 flex-shrink-0" title="Foto Lokal" />`;
-                        } else if (r.photo && r.photo.includes('drive.google.com')) {
+                        } else if (r.photo && r.photo.startsWith('http')) {
                             photoElement = `
-                                <a href="${r.photo}" target="_blank" class="flex flex-col items-center justify-center w-10 h-10 rounded-lg bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 transition-colors cursor-pointer flex-shrink-0" title="Buka Foto di Drive">
+                                <a href="${r.photo}" target="_blank" class="flex flex-col items-center justify-center w-10 h-10 rounded-lg bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 transition-colors cursor-pointer flex-shrink-0" title="Buka Foto di Google Drive">
                                     <i data-lucide="external-link" class="w-5 h-5 text-indigo-500"></i>
                                 </a>
                             `;
@@ -764,21 +811,28 @@
                             photoElement = `<div class="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center flex-shrink-0"><i data-lucide="image-off" class="w-5 h-5 text-slate-400"></i></div>`;
                         }
 
-                        // Nama file sesuai permintaan: data absen/Nama-Tanggal-MASUK.jpg
-                        const fileNameDisplay = `data absen/${name}-${r.date}-${r.status.toUpperCase()}.jpg`;
+                        // Mengubah nama tampilan file Google Drive agar terlihat rapi dan professional
+                        const customDriveText = (r.photo && r.photo.startsWith('http')) 
+                            ? `<a href="${r.photo}" target="_blank" class="text-[10px] text-blue-600 hover:underline flex items-center gap-1 mt-0.5 truncate max-w-full" title="Buka File: data absen/${r.name}-${r.date}-${r.status.toUpperCase()}.jpg">
+                                 <i data-lucide="link" class="w-3 h-3 flex-shrink-0"></i> <span class="truncate">data absen/${r.name}-${r.date}-${r.status.toUpperCase()}.jpg</span>
+                               </a>` 
+                            : '';
+
+                        const shiftLabel = r.shift ? `<span class="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-medium border border-slate-200">${r.shift}</span>` : '';
 
                         return `
                         <div class="flex items-start justify-between mt-2 group/item p-2 rounded-lg bg-slate-50 border border-slate-100">
                             <div class="flex items-start gap-3 w-full overflow-hidden">
                                 ${photoElement}
                                 <div class="flex flex-col items-start gap-0.5 flex-1 min-w-0">
-                                    <span class="px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${statusBadgeColor}">${r.status}</span>
-                                    <div class="flex items-center gap-1 text-xs font-medium text-slate-700">
-                                        <i data-lucide="clock" class="w-3.5 h-3.5 text-indigo-500"></i> ${r.time} ${syncIcon}
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${statusBadgeColor}">${r.status}</span>
+                                        ${shiftLabel}
+                                        <div class="flex items-center gap-1 text-xs font-medium text-slate-700">
+                                            <i data-lucide="clock" class="w-3.5 h-3.5 text-indigo-500"></i> ${r.time} ${syncIcon}
+                                        </div>
                                     </div>
-                                    <a href="${r.photo}" target="_blank" class="text-[10px] text-blue-600 hover:underline truncate w-full block" title="Buka File: ${fileNameDisplay}">
-                                        ${fileNameDisplay}
-                                    </a>
+                                    ${customDriveText}
                                 </div>
                             </div>
                             <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-all ml-2 flex-shrink-0">
@@ -812,6 +866,7 @@
         document.getElementById('attendance-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const name = document.getElementById('input-name').value;
+            const shift = document.getElementById('input-shift').value;
             const date = document.getElementById('input-date').value;
             const hour = document.getElementById('input-time-hour').value;
             const minute = document.getElementById('input-time-minute').value;
@@ -828,8 +883,10 @@
             btn.disabled = true;
 
             try {
+                // DIUBAH MENJADI URLSearchParams AGAR TIDAK GAGAL DI CLOUD (GOOGLE SCRIPT)
                 const params = new URLSearchParams();
                 params.append('nama', name);
+                params.append('shift', shift);
                 params.append('tanggal', date);
                 params.append('waktu', time);
                 params.append('status', status);
@@ -840,6 +897,7 @@
                     params.append('old_nama', oldRec.name);
                     params.append('old_tanggal', oldRec.date);
                     params.append('old_status', oldRec.status);
+
                     if (currentPhotoData.startsWith('http')) {
                         params.append('existingPhotoUrl', currentPhotoData);
                     } else {
@@ -852,38 +910,205 @@
                     params.append('mimeType', 'image/jpeg');
                 }
 
+                // Kirim dengan mode no-cors agar dijamin 100% masuk ke spreadsheet Anda
                 await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
                     mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                     body: params.toString()
                 });
 
-                showNotification('Data dikirim ke server. Mohon tunggu sinkronisasi.', 'success');
+                // Simpan lokal seketika
+                if (editingId) {
+                    const idx = records.findIndex(r => r.id === editingId);
+                    if(idx !== -1) {
+                        records[idx] = { ...records[idx], name, shift, date, time, status, photo: currentPhotoData, synced: true };
+                    }
+                    showNotification('Data absensi berhasil diupdate ke Spreadsheet!', 'success');
+                } else {
+                    const newRec = { id: Date.now(), name, shift, date, time, status, photo: currentPhotoData, synced: true };
+                    records.unshift(newRec); 
+                    showNotification('Absen berhasil disimpan langsung ke Spreadsheet!', 'success');
+                }
                 
-                // Reset form dan tarik data cloud
-                document.getElementById('input-name').value = '';
-                document.getElementById('input-status').value = 'Masuk';
-                removePhoto();
-                setDateTimeDefaults();
+                localStorage.setItem('absensi_records', JSON.stringify(records));
                 
-                // Tarik data terbaru setelah simpan
-                setTimeout(fetchCloudData, 2000);
+                selectedDateStr = date;
+                const dateObj = new Date(date);
+                currentMonthDate.setMonth(dateObj.getMonth());
+                currentMonthDate.setFullYear(dateObj.getFullYear());
+                
+                await fetchCloudData();
+                renderCalendar();
+                renderSelectedDay();
+                cancelEdit();
 
             } catch (err) {
                 console.error(err);
-                showNotification('Data disimpan lokal. Klik "Update Data".', 'error');
                 
-                const newRec = { id: Date.now(), name, date, time, status, photo: currentPhotoData, synced: false };
-                records.unshift(newRec);
+                if (editingId) {
+                    const idx = records.findIndex(r => r.id === editingId);
+                    if(idx !== -1) records[idx] = { ...records[idx], name, shift, date, time, status, photo: currentPhotoData, synced: false };
+                    showNotification('Tidak ada internet! Data diamankan di HP.', 'error');
+                } else {
+                    const newRec = { id: Date.now(), name, shift, date, time, status, photo: currentPhotoData, synced: false };
+                    records.unshift(newRec); 
+                    showNotification('Tidak ada internet! Data diamankan di HP.', 'error');
+                }
+                
                 localStorage.setItem('absensi_records', JSON.stringify(records));
+                selectedDateStr = date;
+                
                 renderCalendar();
                 renderSelectedDay();
+                cancelEdit();
+
             } finally {
                 btn.innerHTML = originalHtml;
                 btn.disabled = false;
                 lucide.createIcons();
             }
         });
+
+        // --- SINKRONISASI MANUAL ---
+        window.syncData = async () => {
+            const btn = document.getElementById('btn-sync');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span class="hidden sm:inline">Memuat...</span>';
+            btn.disabled = true;
+            lucide.createIcons();
+
+            const unsyncedRecords = records.filter(r => r.synced === false);
+            let successCount = 0;
+            
+            for (let i = 0; i < unsyncedRecords.length; i++) {
+                const rec = unsyncedRecords[i];
+                try {
+                    const params = new URLSearchParams();
+                    params.append('action', 'insert');
+                    params.append('nama', rec.name);
+                    params.append('shift', rec.shift || '-');
+                    params.append('tanggal', rec.date);
+                    params.append('waktu', rec.time);
+                    params.append('status', rec.status);
+                    
+                    if (rec.photo && rec.photo.startsWith('http')) {
+                        params.append('existingPhotoUrl', rec.photo);
+                    } else {
+                        params.append('photoBase64', rec.photo ? rec.photo.split(',')[1] : '');
+                        params.append('mimeType', 'image/jpeg');
+                    }
+
+                    await fetch(APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: params.toString()
+                    });
+                    
+                    const index = records.findIndex(r => r.id === rec.id);
+                    if (index !== -1) {
+                        records[index].synced = true;
+                    }
+                    successCount++;
+                } catch (err) {
+                    console.error('Gagal mensinkronkan data:', rec.name, err);
+                }
+            }
+
+            await fetchCloudData();
+
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+            lucide.createIcons();
+
+            if (successCount > 0) {
+                showNotification(`${successCount} data berhasil disinkronkan ke Spreadsheet!`, 'success');
+            } else {
+                showNotification('Memuat dari CSV selesai.', 'success');
+            }
+        };
+
+        // --- EXPORT CSV ---
+        window.exportToCSV = () => {
+            const year = currentMonthDate.getFullYear();
+            const month = String(currentMonthDate.getMonth() + 1).padStart(2, '0');
+            const prefix = `${year}-${month}`; 
+
+            const monthRecords = records.filter(r => r.date.startsWith(prefix));
+
+            if (monthRecords.length === 0) {
+                showNotification('Tidak ada data pada bulan ini untuk diekspor.', 'error');
+                return;
+            }
+
+            const rows = [["Nama Lengkap", "Shift Kerja", "Tanggal", "Waktu", "Status"]];
+            monthRecords.forEach(r => rows.push([r.name, r.shift || '-', r.date, r.time, r.status]));
+            const csv = rows.map(r => r.join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `rekap_absensi_${prefix}.csv`;
+            a.click();
+        };
+
+        // --- BACKUP DATA LOKAL ---
+        window.backupLocalData = () => {
+            if (records.length === 0) {
+                showNotification('Tidak ada data untuk dibackup.', 'error');
+                return;
+            }
+            const dataStr = JSON.stringify(records, null, 2);
+            const blob = new Blob([dataStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `backup_absensi_lokal_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            showNotification('Backup lokal berhasil diunduh.', 'success');
+        };
+
+        // --- RESTORE DATA LOKAL ---
+        window.restoreLocalData = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const importedData = JSON.parse(event.target.result);
+                    if (!Array.isArray(importedData)) throw new Error("Format JSON tidak valid");
+
+                    const existingIds = new Set(records.map(r => r.id));
+                    let addedCount = 0;
+                    
+                    importedData.forEach(item => {
+                        if (item.id && !existingIds.has(item.id)) {
+                            records.push(item);
+                            existingIds.add(item.id);
+                            addedCount++;
+                        }
+                    });
+
+                    records.sort((a, b) => {
+                        const dtA = new Date(`${a.date}T${a.time}`);
+                        const dtB = new Date(`${b.date}T${b.time}`);
+                        return dtB - dtA;
+                    });
+
+                    localStorage.setItem('absensi_records', JSON.stringify(records));
+                    renderCalendar();
+                    renderSelectedDay();
+                    showNotification(`Restore selesai! ${addedCount} riwayat ditambahkan.`, 'success');
+                } catch (err) {
+                    console.error(err);
+                    showNotification('Gagal membaca file backup.', 'error');
+                }
+                e.target.value = ''; 
+            };
+            reader.readAsText(file);
+        };
 
         // Inisialisasi awal
         fetchNames().then(() => {
